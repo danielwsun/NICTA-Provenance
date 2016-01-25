@@ -1,0 +1,12 @@
+#ignore log file
+*.log
+
+#data files named after data index
+*:*:*
+
+#Emacs temp files
+*~
+[#]*[#]
+
+#JAR files and compiled target
+**/target/
