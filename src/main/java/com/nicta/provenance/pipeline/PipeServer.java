@@ -12,16 +12,26 @@ import java.net.HttpURLConnection;
 import java.net.InetSocketAddress;
 import java.net.URL;
 import java.net.URLDecoder;
+import java.util.Scanner;
 
 /**
  * @author Trams Wang
- * @version 1.1
- * Date: Jan. 19, 2016
+ * @version 1.2
+ * Date: Jan. 27, 2016
  *
- *   Standalone server for semantics inferring and data dispatching. It sends result/intermediate data to data server
- * and send log line records to ES server. At mean time, it infers and stores pipeline semantics locally.
+ *   Standalone server for semantics inferring, process unit scoring and data dispatching. It sends result/intermediate
+ * data to data server and send log line records to ES server. At mean time, it infers and stores pipeline semantics
+ * locally, score all pipeline paths after storing the final result.
  *
- * @see com.nicta.provenance.pipeline.PipeServer.PipeServerHandler for supporting RESTful API.
+ * Protocol:
+ *   Context: /
+ *     GET: Fetch data from data server.
+ *     PUT: Store intermediate results and infer pipeline structure.
+ *     POST: Store final results, complete pipeline structure and score the path.
+ *   Context: /semantics
+ *     GET: View pipeline semantics structure.
+ *
+ * @see DataHandler for supporting RESTful API.
  */
 public class PipeServer {
 
@@ -145,13 +155,13 @@ public class PipeServer {
 
     /**
      * @author Trams Wang
-     * @version  1.2
-     * Date Jan. 20, 2016
+     * @version  1.3
+     * Date Jan. 27, 2016
      *
-     *   Handler class for PipeServer. Handles ONLY 'GET', 'PUT' and 'POST' methods.
+     *   Handle data requests for PipeServer. Handles ONLY 'GET', 'PUT' and 'POST' methods.
      */
-    private class PipeServerHandler implements HttpHandler{
-        public PipeServerHandler() {}
+    private class DataHandler implements HttpHandler{
+        public DataHandler() {}
 
         /**
          *   Request dispatcher.
@@ -300,12 +310,145 @@ public class PipeServer {
 
         /**
          *   'POST' method handler.
-         *   No URI required. Pipeline server will return the semantics structure as several strings to the client.
+         *   Same protocol with 'PUT' method. Yet it only called by final storing functions instead of intermediate
+         * stores. It will ask user whether the data is good or not in quality and score the processing unit according
+         * to that answer.
          *
          * @param t HTTP context.
          * @throws IOException
          */
         private void handlePost(HttpExchange t) throws IOException
+        {
+            /* Parse the log para*/
+            String log_json = URLDecoder.decode(t.getRequestURI().toString().substring(6), "UTF-8");
+            Gson gson = new Gson();
+            LogLine log = gson.fromJson(log_json, LogLine.class);
+
+            /* Pass data to DS and Answer testing server*/
+            URL url = new URL(data_server_location + log.dstvar);
+            HttpURLConnection ds_con = (HttpURLConnection)url.openConnection();
+            ds_con.setRequestMethod("PUT");
+            ds_con.setDoOutput(true);
+            ds_con.setDoInput(true);
+            OutputStream ds_out = ds_con.getOutputStream();
+            BufferedReader in = new BufferedReader(new InputStreamReader(t.getRequestBody()));
+            String inputline;
+
+            URL chkurl = new URL("http://localhost:6666/");
+            HttpURLConnection chk_con = (HttpURLConnection)chkurl.openConnection();
+            chk_con.setRequestMethod("GET");
+            chk_con.setDoOutput(true);
+            chk_con.setDoInput(true);
+            OutputStream chk_out = chk_con.getOutputStream();
+
+            while (null != (inputline = in.readLine()))
+            {
+                ds_out.write((inputline + '\n').getBytes());
+                chk_out.write((inputline + '\n').getBytes());
+            }
+            ds_out.close();
+            chk_out.close();
+            in.close();
+
+            /* Pass destination index to client*/
+            int resp_code = ds_con.getResponseCode();
+            if (400 == resp_code)
+            {
+                throw new IOException("Data Server Error.");
+            }
+            BufferedReader ds_in = new BufferedReader(new InputStreamReader(ds_con.getInputStream()));
+            String dstidx = ds_in.readLine();
+            t.sendResponseHeaders(200, dstidx.getBytes().length);
+            OutputStream out = t.getResponseBody();
+            out.write(dstidx.getBytes());
+            out.close();
+            ds_in.close();
+
+            /* Store log info into ES server*/
+            log.dstidx = dstidx;
+            log_json = gson.toJson(log);
+            es_slave.send(log_json);
+            inferer.absorb(log.srcvar, log.processor, log.dstvar);
+
+            /* Score data according to user's specification*/
+            System.out.println("Checking for similarity...");
+            resp_code = chk_con.getResponseCode();
+            if (400 == resp_code)
+            {
+                throw new IOException("Answer Testing Server Error.");
+            }
+            Scanner scanner = new Scanner(chk_con.getInputStream());
+            double ans = scanner.nextDouble();
+            System.out.println("Similarity is: " + Double.toString(ans));
+            scorer.scorePath(inferer.dataNode(log.srcvar), ans);
+        }
+
+        /**
+         *   Handle other unimplemented methods.
+         *
+         * @param t
+         * @throws IOException
+         */
+        private void handleOtherMethods(HttpExchange t) throws IOException
+        {
+            String info = "Method Not Implemented!\n";
+            t.sendResponseHeaders(404, info.length());
+            OutputStream out = t.getResponseBody();
+            out.write(info.getBytes());
+            out.close();
+        }
+    }
+
+    /**
+     * @author Trams Wang
+     * @version 1.0
+     * Date: Jan. 27, 2016
+     *
+     *   Handle semantics requests for PipeServer. Handles ONLY 'GET' method.
+     */
+    private class SemanticsHandler implements HttpHandler{
+        public SemanticsHandler() {}
+
+        public void handle(HttpExchange t)
+        {
+            try
+            {
+                String method = t.getRequestMethod();
+                if ("GET".equals(method))
+                {
+                    handleGet(t);
+                }
+                else
+                {
+                    handleOtherMethods(t);
+                }
+            }
+            catch (IOException e)
+            {
+                e.printStackTrace();
+                try
+                {
+                    String info = "Error In Pipeline Server";
+                    t.sendResponseHeaders(400, info.length());
+                    OutputStream out = t.getResponseBody();
+                    out.write(info.getBytes());
+                    out.close();
+                }
+                catch (IOException ee)
+                {
+                    System.out.println("Pipeline Server Nested Error.");
+                    ee.printStackTrace();
+                }
+            }
+        }
+
+        /**
+         *   View semantics structure of pipeline.
+         *
+         * @param t Http context.
+         * @throws IOException
+         */
+        public void handleGet(HttpExchange t) throws IOException
         {
             t.sendResponseHeaders(200, 0);
             OutputStream out = t.getResponseBody();
@@ -334,6 +477,7 @@ public class PipeServer {
     private String data_server_location;
     private ESSlave es_slave;
     private SemanticsInferer inferer;
+    private Scorer scorer;
     private PrintWriter log_file;
 
     /**
@@ -349,6 +493,7 @@ public class PipeServer {
                 + Integer.toString(ProvConfig.DEF_DS_PORT) + '/';
         es_slave = new ESSlave();
         inferer = new SemanticsInferer();
+        scorer = new Scorer();
     }
 
     /**
@@ -370,6 +515,7 @@ public class PipeServer {
                 + Integer.toString(ds_port) + '/';
         es_slave = new ESSlave(ess_host, ess_port, ProvConfig.DEF_ESS_INDEX, ProvConfig.DEF_ESS_TYPE);
         inferer = new SemanticsInferer();
+        scorer = new Scorer();
     }
 
     /**
@@ -386,7 +532,8 @@ public class PipeServer {
         System.out.println("\tWill interact with ES server at: " + es_slave.ess_location);
         System.out.printf("\tLogs In: '%s'\n", log_path);
         HttpServer server = HttpServer.create(new InetSocketAddress(host, port), 0);
-        HttpContext context = server.createContext("/", new PipeServerHandler());
+        HttpContext data_context = server.createContext(ProvConfig.DEF_PS_DATA_CONTEXT, new DataHandler());
+        HttpContext sem_context = server.createContext(ProvConfig.DEF_PS_SEM_CONTEXT, new SemanticsHandler());
 
         es_slave.rebuild();
 

@@ -79,7 +79,7 @@ public class ProvStorer extends StoreFunc{
         {
             URL url = new URL(surl);
             con = (HttpURLConnection)url.openConnection();
-            con.setRequestMethod("PUT");
+            con.setRequestMethod("POST");
             con.setDoOutput(true);
             out = new DataOutputStream(con.getOutputStream());
         }

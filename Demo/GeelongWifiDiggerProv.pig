@@ -1,5 +1,5 @@
 -------------------------------------------------------------------------------------------------------------------
--- Use this script to dig more infomation in data 'GeelongWifiStats.csv'.
+-- Use this script to dig more infomation in data 'WifiStatusTotal.csv'.
 -- Data downloaded from 'data.gov.au'.
 --
 -- Date:	2016/1/21
@@ -49,10 +49,10 @@ DEFINE InterStoreConst(srcvar, srcidx, processor, dstvar, dstrelation) RETURNS d
 -------------------------------------------------------------------------------------------------------------------
 /* We may not assign the schema for now, because there will be some data that could not be
  * correctly parsed.*/
-raw = LOAD 'localhost/8888' USING com.nicta.provenance.pigudf.ProvLoader('GeelongWifiStatsEg.csv', 'raw');
+raw = LOAD 'localhost/8888' USING com.nicta.provenance.pigudf.ProvLoader('WifiStatusTotal.csv', 'raw');
 
 delcln = FILTER (FOREACH raw GENERATE FLATTEN(CleanByDel(*))) BY NOT ($0 MATCHES '');
-delcln_idx = InterStoreConst('raw', 'GeelongWifiStats_1.csv', 'CleanByDelete', 'delcln', delcln);
+delcln_idx = InterStoreConst('raw', 'WifiStatusTotal.csv', 'CleanByDelete', 'delcln', delcln);
 
 /* The Commented columns are just for illustration that those data are not used in the
  * following process.
@@ -115,16 +115,16 @@ delcln_url_summed_idx = InterStore('delcln_url_grouped', delcln_url_grouped_idx,
 delcln_url_ordered = ORDER delcln_url_summed BY TotalAccess DESC;
 delcln_url_ordered_idx = InterStore('delcln_url_summed', delcln_url_summed_idx, 'DelURLOrdering', 'delcln_url_ordered', delcln_url_ordered);
 
-DUMP delcln_url_ordered_idx;
+--DUMP delcln_url_ordered_idx;
 
-STORE delcln_url_ordered INTO 'localhost/8888' USING com.nicta.provenance.pigudf.ProvStorer('delcln_url_ordered', 'delcln_url_ordered_idx');
+--STORE delcln_url_ordered INTO 'localhost/8888' USING com.nicta.provenance.pigudf.ProvStorer('delcln_url_ordered', 'delcln_url_ordered_idx');
 
 -------------------------------------------------------------------------------------------------------------------
 -- Sort Wifi locations according to the total accesses.
 -- Using repairing strategy for cleaning.
 -------------------------------------------------------------------------------------------------------------------
 repcln = FILTER (FOREACH raw GENERATE flatten(CleanByRep(*))) BY NOT ($0 MATCHES '');
-repcln_idx = InterStoreConst('raw', 'GeelongWifiStats_1.csv', 'CleanByRepair', 'repcln', repcln);
+repcln_idx = InterStoreConst('raw', 'WifiStatusTotal.csv', 'CleanByRepair', 'repcln', repcln);
 
 repcln_loc_named = FOREACH repcln GENERATE (chararray)$1 AS LocationID:chararray,
 		   	   	      	   (chararray)$3 AS FirstAccess:chararray,
@@ -162,6 +162,6 @@ repcln_url_summed_idx = InterStore('repcln_url_grouped', repcln_url_grouped_idx,
 repcln_url_ordered = ORDER repcln_url_summed BY TotalAccess DESC;
 repcln_url_ordered_idx = InterStore('repcln_url_summed', repcln_url_summed_idx, 'RepURLOrdering', 'repcln_url_ordered', repcln_url_ordered);
 
-DUMP repcln_url_ordered_idx;
+--DUMP repcln_url_ordered_idx;
 
-STORE repcln_url_ordered INTO 'localhost/8888' USING com.nicta.provenance.pigudf.ProvStorer('repcln_url_ordered', 'repcln_url_ordered_idx');
+--STORE repcln_url_ordered INTO 'localhost/8888' USING com.nicta.provenance.pigudf.ProvStorer('repcln_url_ordered', 'repcln_url_ordered_idx');

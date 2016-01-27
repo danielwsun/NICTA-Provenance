@@ -10,8 +10,8 @@ import java.util.Map;
 
 /**
  * @author Trams Wang
- * @version 1.2
- * Date: Jan. 22, 2016
+ * @version 1.3
+ * Date: Jan. 27, 2016
  *
  *   SemanticsInferer is used for extracting the abstract semantics structure of the running pipeline,
  * providing an interface for user to get a visual of it.
@@ -173,7 +173,7 @@ public class SemanticsInferer {
         for (Map.Entry<String, ProcessNode> entry : procs.entrySet())
         {
             ProcessNode pn = entry.getValue();
-            out.write(('<' + pn.name + ">: " + pn.result.name + '\n').getBytes());
+            out.write(('<' + pn.name + ">(" + Double.toString(pn.score) + "): " + pn.result.name + '\n').getBytes());
         }
         out.write("--Data: \n".getBytes());
         for (Map.Entry<String, DataNode> entry : datas.entrySet())
@@ -187,5 +187,15 @@ public class SemanticsInferer {
             out.write('\n');
         }
         out.write("---------------\n".getBytes());
+    }
+
+    public DataNode dataNode(String name)
+    {
+        return datas.get(name);
+    }
+
+    public ProcessNode processNode(String name)
+    {
+        return procs.get(name);
     }
 }

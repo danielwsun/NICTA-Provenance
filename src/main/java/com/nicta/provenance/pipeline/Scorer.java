@@ -8,26 +8,29 @@ import java.util.concurrent.LinkedBlockingQueue;
  * Date: Jan. 22, 2016
  */
 public class Scorer {
-    public void scorePath(SemanticsInferer.DataNode dst_node, boolean ans)
+    public void scorePath(SemanticsInferer.DataNode dst_node, double ans)
     {
         LinkedBlockingQueue<SemanticsInferer.DataNode> q = new LinkedBlockingQueue<SemanticsInferer.DataNode>();
         q.add(dst_node);
         SemanticsInferer.DataNode head = null;
         while (null != (head = q.poll()))
         {
-            naiveELOMethod(head, ans);
-            for (SemanticsInferer.DataNode dn : head.producer.preds)
+            if (null != head.producer)
             {
-                if (!q.contains(dn))
+                naiveELOMethod(head.producer, ans);
+                for (SemanticsInferer.DataNode dn : head.producer.preds)
                 {
-                    q.add(dn);
+                    if (!q.contains(dn))
+                    {
+                        q.add(dn);
+                    }
                 }
             }
         }
     }
 
-    private void naiveELOMethod(SemanticsInferer.DataNode node, boolean ans)
+    private void naiveELOMethod(SemanticsInferer.ProcessNode node, double ans)
     {
-        node.score += ans? 1 : -1;
+        node.score += ans;
     }
 }
