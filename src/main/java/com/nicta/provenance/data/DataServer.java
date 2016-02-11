@@ -200,7 +200,7 @@ public class DataServer {
         System.out.println("Log file opened.");
             /* Initiate server*/
         HttpServer server = HttpServer.create(new InetSocketAddress(host, port), 0);
-        HttpContext context = server.createContext("/", new DataServerHandler());
+        HttpContext context = server.createContext(ProvConfig.DEF_DS_CONTEXT, new DataServerHandler());
         server.setExecutor(null);
         server.start();
         System.out.printf("Data Server Initiated.\n");

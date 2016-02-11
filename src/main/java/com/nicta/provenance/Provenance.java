@@ -2,8 +2,10 @@ package com.nicta.provenance;
 
 import com.nicta.provenance.data.DataServer;
 import com.nicta.provenance.pipeline.PipeServer;
+import com.nicta.provenance.query.QueryBuilder;
 
 import java.io.IOException;
+import java.util.Scanner;
 
 /**
  * @author Trams Wang
@@ -15,7 +17,7 @@ import java.io.IOException;
 public class Provenance {
     public static void main(String[] args)
     {
-        try
+        /*try
         {
             DataServer ds = new DataServer();
             ds.initiate();
@@ -34,6 +36,23 @@ public class Provenance {
         {
             System.out.println("PipeServer initiation failed!");
             e.printStackTrace();
+        }*/
+        Scanner scanner = new Scanner(System.in);
+        String inputline = null;
+        QueryBuilder builder = new QueryBuilder();
+
+        while (null != (inputline = scanner.nextLine()))
+        {
+            if ("quit".equals(inputline)) break;
+            try
+            {
+                String json = builder.build(inputline);
+                builder.printPrettyJSON(json, System.out);
+            }
+            catch (IOException e)
+            {
+                e.printStackTrace();
+            }
         }
     }
 }

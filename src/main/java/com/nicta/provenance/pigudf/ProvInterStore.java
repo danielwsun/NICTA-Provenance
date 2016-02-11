@@ -93,7 +93,7 @@ public class ProvInterStore extends EvalFunc<String>{
         log.dstvar = (String)input.get(3);
         String loginfo = new Gson().toJson(log);
 
-        URL url = new URL(protocol + "://" +ps_host + ':' + Integer.toString(ps_port)
+        URL url = new URL(protocol + "://" + ps_host + ':' + Integer.toString(ps_port)
                 + "/?log=" + URLEncoder.encode(loginfo, "UTF-8"));
         HttpURLConnection con = (HttpURLConnection)url.openConnection();
         con.setDoOutput(true);
