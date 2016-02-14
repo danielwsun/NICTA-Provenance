@@ -19,7 +19,7 @@ public class ProvConfig {
     public static final String  DEF_PS_HOST = "localhost";
     public static final int     DEF_PS_PORT = 8888;
     public static final String  DEF_PS_DATA_CONTEXT = "/";
-    public static final String  DEF_PS_SEM_CONTEXT = "/semantics";
+    public static final String  DEF_PS_SEM_CONTEXT = "/_semantics";
     public static final String  DEF_PS_LOG_FILE = "PipeServerLog.log";
 
     public static final String  DEF_ESS_PROTOCOL = "http";

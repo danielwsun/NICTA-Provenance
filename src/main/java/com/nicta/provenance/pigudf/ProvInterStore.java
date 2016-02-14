@@ -6,6 +6,7 @@ import com.nicta.provenance.pipeline.LogLine;
 import org.apache.pig.EvalFunc;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.data.TupleFactory;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -17,33 +18,30 @@ import java.net.URLEncoder;
 
 /**
  * @author Trams Wang
- * @version 1.1
- * Date: Jan. 20, 2016
+ * @version 2.0
+ * Date: Feb. 12, 2016
  *
  *   Provenance storing function for storing intermediate results. Syntax goes below:
+ *
  *   REGISTER InterStore com.nicta.provenance.pigudf.ProvInterStore('protocol', 'host', 'port');
- *   dstvar_idx = FOREACH dstvar_grp GENERATE InterStore('srcvar', 'srcvar_idx', 'processor', 'dstvar', data_content);
+ *   dstvar = FOREACH dstvar GENERATE FLATTEN(InterStore('srcvar', 'processor', 'dstvar', *));
+ *
  *   Where, you should always initialize this function via Pig Latin macro definition, providing it with proper address
  * information about pipeline server, otherwise the function will adopt default configurations, which may sometimes be
- * wrong; 'dstvar_idx' is a relation that will contain tuples(usually only one) which each maintain only one chararray
- * field, denoting the index assigned to source data by data server; 'dstvar_grp' is a relation that groups all records
- * together from 'dstvar'; 'srcvar' is a string denotes the source variable, if there's more than one, all source
- * variable names are separated by ','; 'srcvar_idx' is a string denotes the source variable index, if there's more than
- * one source variable, all indices should be separated by ',' and be one-to-one corresponding to variables in 'srcvar';
- * 'processor' stands for the user specified name for this procedure; 'dstvar' is the name of the variable user would
- * like to store data from; 'data_content' is a bag contains all tuples that need storing.
- *   However, the function shall never be used alone. To transmit entire relation referred by some variable 'var', it
- * should always accompany a code block, as shown in the example below:
+ * wrong; 'dstvar' is the relation that's going to be stored, we suggest using same relation name when applying this
+ * operation for the sake of performance and correctness; 'srcvar' is a string denotes the source variable, if there's
+ * more than one, all source variable names are separated by ','; 'processor' stands for the user specified name for
+ * this procedure; 'dstvar' is the name of the variable user would like to store data from;
+ *
+ *   This function shall always used inside a FLATTEN operator, as shown in the example below:
  *   E.g.
  *   REGISTER InterStore com.nicta.provenance.pigudf.ProvInterStore('http', 'localhost', '8888');
  *   ...
  *   dstvar = JOIN srcvar1 BY $0, srcvar2 BY $0;
- *   dstvar_grp = GROUP dstvar ALL;
- *   dstvar_idx = FOREACH dstvar_grp GENERATE InterStore('srcvar1,srcvar2', 'srcvar1_idx,srcvar2_idx', 'Example',
- *                                                       'dstvar', dstvar_grp.dstvar);
+ *   dstvar = FOREACH dstvar GENERATE FLATTEN(InterStore('srcvar1,srcvar2', 'Example', 'dstvar', *));
  *   ...
  */
-public class ProvInterStore extends EvalFunc<String>{
+public class ProvInterStore extends EvalFunc<Tuple>{
     private String protocol;
     private String ps_host;
     private int ps_port;
@@ -73,50 +71,51 @@ public class ProvInterStore extends EvalFunc<String>{
     }
 
     /**
-     *   Main body of storing procedure. Fields in 'input' should be:
+     *   Main body of storing procedure. Store one record line at a time. Fields in 'input' should be:
      *   $0: 'srcvars'
-     *   $1: 'srcvars_idx'
-     *   $2: 'processor'
-     *   $3: 'dstvar'
-     *   $4: Data bag
+     *   $1: 'processor'
+     *   $2: 'dstvar'
+     *   $3,...: record content
      *
      * @param input Source data
      * @return Index assigned to those data by data server.
      * @throws IOException
      */
-    public String exec(Tuple input) throws IOException
+    public Tuple exec(Tuple input) throws IOException
     {
+        //System.out.println("-----------------------INTERSTORE");
         LogLine log = new LogLine();
         log.srcvar = (String)input.get(0);
-        log.srcidx = (String)input.get(1);
-        log.processor = (String)input.get(2);
-        log.dstvar = (String)input.get(3);
+        log.processor = (String)input.get(1);
+        log.dstvar = (String)input.get(2);
         String loginfo = new Gson().toJson(log);
 
         URL url = new URL(protocol + "://" + ps_host + ':' + Integer.toString(ps_port)
                 + "/?log=" + URLEncoder.encode(loginfo, "UTF-8"));
         HttpURLConnection con = (HttpURLConnection)url.openConnection();
+        con.setRequestMethod("PUT");
         con.setDoOutput(true);
         con.setDoInput(true);
-        con.setRequestMethod("PUT");
         OutputStream out = con.getOutputStream();
-
-        DataBag bag = (DataBag)input.get(4);
-        for (Tuple t : bag)
+        int len = input.size();
+        String result = "";
+        Tuple tuple = TupleFactory.getInstance().newTuple();
+        for (int i = 3; i < len; i++)
         {
-            String result = ProvStorer.TranslateField(t);
-            out.write(((result.substring(1, result.length()-1)) + '\n').getBytes());
+            result += ProvStorer.TranslateField(input.get(i));
+            if (i != len - 1) result += ',';
+            tuple.append(input.get(i));
         }
+        out.write((result + '\n').getBytes());
         out.close();
-
+        //System.out.println("--RESULT: " + result);
+        System.out.println("----------------------$$$$$$$$$$$$$$$$$$$$");
         int resp_code = con.getResponseCode();
+        System.out.println("---------------**************************");
         if (200 != resp_code)
         {
             throw new IOException("Intermediate data storing failed!");
         }
-        BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
-        String dstidx = in.readLine();
-        in.close();
-        return dstidx;
+        return tuple;
     }
 }

@@ -21,13 +21,18 @@ import java.util.List;
 
 /**
  * @author Trams Wang
- * @version 1.2
- * Date: Jan. 19, 2016
+ * @version 1.3
+ * Date: Feb. 12, 2016
  *
  *   Provenance loading function. Syntax for using this function in Pig Latin goes below:
+ *
  *   varname = LOAD 'host/port' USING com.nicta.provenance.pigudf.ProvLoader('srcidx', 'varname') AS ...;
- *   Where 'ps_host' and 'ps_port' are host address and port for pipeline server; 'varname' is the name of the
+ *
+ *   Where 'host' and 'port' are host address and port for pipeline server; 'varname' is the name of the
  * variable that receives the result provided by LOAD; 'srcidx' is the index of source data.
+ *
+ *   E.g.
+ *   raw_data = LOAD 'localhost/8888' USING com.nicta.provenance.pigudf.ProvLoader('raw_data_idx', 'raw_data');
  */
 public class ProvLoader extends LoadFunc {
 
@@ -276,8 +281,6 @@ public class ProvLoader extends LoadFunc {
     {
         input_format = new ProvInputFormat();
         log = new LogLine();
-        log.srcvar = "ESServerStart";
-        log.srcidx = "";
         log.processor = dstvar + "Loader";
         log.dstvar = dstvar;
         log.dstidx = srcidx;

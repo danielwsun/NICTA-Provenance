@@ -11,23 +11,23 @@ import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 
-import java.io.BufferedReader;
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.util.Iterator;
 import java.util.Map;
 
 /**
  * @author Trams Wang
- * @version 1.1
- * Date: Jan. 20, 2016
+ * @version 2.0
+ * Date: Feb. 12, 2016
  *
  *   Provenance storing function. Syntax for using this function in Pig Latin goes below:
- *   STORE varname INTO 'host/port' USING com.nicta.provenance.pigudf.ProvStorer('varname', 'srcidx');
+ *
+ *   STORE varname INTO 'host/port' USING com.nicta.provenance.pigudf.ProvStorer('varname');
+ *
  *   Where 'host/port' is '/' separated host and port of pipeline server; 'varname' is the variable name in Pig Latin
  * that refers to data going to be stored; 'srcidx' is index of data referred by 'varname'.
  */
@@ -55,7 +55,7 @@ public class ProvStorer extends StoreFunc{
 
     /**
      * @author Trams Wang
-     * @version 1.0
+     * @version 2.0
      * Date: Jan. 20, 2016
      *
      *   Customized Hadoop record writer that writes date into pipeline server.
@@ -63,6 +63,7 @@ public class ProvStorer extends StoreFunc{
     public static class ProvRecordWriter extends RecordWriter<Integer, String> {
         private DataOutputStream out;
         private HttpURLConnection con;
+        private String closeurl;
 
         /**
          *   Create an instance of writer that will write into system output.
@@ -79,13 +80,19 @@ public class ProvStorer extends StoreFunc{
         {
             URL url = new URL(surl);
             con = (HttpURLConnection)url.openConnection();
-            con.setRequestMethod("POST");
+            con.setRequestMethod("PUT");
             con.setDoOutput(true);
+            con.setDoInput(true);
             out = new DataOutputStream(con.getOutputStream());
+
+            String [] tmp = surl.split("[?]log=");
+            closeurl = tmp[0];
+            LogLine log = new Gson().fromJson(URLDecoder.decode(tmp[1], "UTF-8"), LogLine.class);
+            closeurl += log.dstvar;
         }
 
         /**
-         *   Close output stream.
+         *   Close output stream. Send Pipeline Server a storing signal of that storing variable.
          *
          * @param context Task context.
          * @throws IOException
@@ -95,7 +102,19 @@ public class ProvStorer extends StoreFunc{
             out.flush();
             out.close();
             int resp_code = con.getResponseCode();
-            if (200 != resp_code)
+            if (400 == resp_code)
+            {
+                throw new IOException("Pipeline server writing failed!");
+            }
+
+            URL url = new URL(closeurl);
+            con = (HttpURLConnection)url.openConnection();
+            con.setRequestMethod("POST");
+            con.setDoOutput(false);
+            con.setDoInput(true);
+            System.out.println("Store signal triggered.");
+            resp_code = con.getResponseCode();
+            if (400 == resp_code)
             {
                 throw new IOException("Pipeline server writing failed!");
             }
@@ -103,7 +122,7 @@ public class ProvStorer extends StoreFunc{
             String inputline;
             while (null != (inputline = in.readLine()))
             {
-                System.out.println("--Response: " + inputline);
+                System.out.println("Storing Response: " + inputline);
             }
         }
 
@@ -186,15 +205,13 @@ public class ProvStorer extends StoreFunc{
      *   Initiate storing procedure with user specified configurations.
      *
      * @param srcvar Source variable name in Pig Latin script.
-     * @param srcidx Source index of srcvar.
      */
-    public ProvStorer(String srcvar, String srcidx)
+    public ProvStorer(String srcvar, String processor, String dstvar)
     {
         log = new LogLine();
         log.srcvar = srcvar;
-        log.srcidx = srcidx;
-        log.processor = "Storer";
-        log.dstvar = "?ESServerEnd?";
+        log.processor = processor;
+        log.dstvar = dstvar;
         output_format = new ProvOutputFormat();
     }
 

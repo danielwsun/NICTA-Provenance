@@ -10,3 +10,7 @@
 
 #JAR files and compiled target
 **/target/
+
+#Test files
+/\Data
+/\Mapping

@@ -17,7 +17,7 @@ import java.util.Scanner;
 public class Provenance {
     public static void main(String[] args)
     {
-        /*try
+        try
         {
             DataServer ds = new DataServer();
             ds.initiate();
@@ -36,8 +36,8 @@ public class Provenance {
         {
             System.out.println("PipeServer initiation failed!");
             e.printStackTrace();
-        }*/
-        Scanner scanner = new Scanner(System.in);
+        }
+        /*Scanner scanner = new Scanner(System.in);
         String inputline = null;
         QueryBuilder builder = new QueryBuilder();
 
@@ -53,6 +53,6 @@ public class Provenance {
             {
                 e.printStackTrace();
             }
-        }
+        }*/
     }
 }

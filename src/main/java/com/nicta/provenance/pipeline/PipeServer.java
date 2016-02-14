@@ -12,12 +12,14 @@ import java.net.HttpURLConnection;
 import java.net.InetSocketAddress;
 import java.net.URL;
 import java.net.URLDecoder;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Scanner;
 
 /**
  * @author Trams Wang
- * @version 1.2
- * Date: Jan. 27, 2016
+ * @version 2.0
+ * Date: Feb. 12, 2016
  *
  *   Standalone server for semantics inferring, process unit scoring and data dispatching. It sends result/intermediate
  * data to data server and send log line records to ES server. At mean time, it infers and stores pipeline semantics
@@ -26,8 +28,8 @@ import java.util.Scanner;
  * Protocol:
  *   Context: /
  *     GET: Fetch data from data server.
- *     PUT: Store intermediate results and infer pipeline structure.
- *     POST: Store final results, complete pipeline structure and score the path.
+ *     PUT: Buffer intermediate results and infer pipeline structure.
+ *     POST: Flush buffer and score the path.
  *   Context: /semantics
  *     GET: View pipeline semantics structure.
  *
@@ -155,12 +157,132 @@ public class PipeServer {
 
     /**
      * @author Trams Wang
-     * @version  1.3
-     * Date Jan. 27, 2016
+     * @version 1.0
+     * Date: Feb. 12, 2016
+     *
+     *   This class is used for buffering data content.
+     */
+    private class RecordBuffer{
+        private OutputStream out;
+        private ArrayList<String> bkup;
+        private HttpURLConnection con;
+        public LogLine log;
+        public ArrayList<RecordBuffer> parents;
+        private boolean closed;
+
+        /**
+         *   A deprecated default constructor.
+         */
+        private RecordBuffer()
+        {
+            out = null;
+            log = null;
+            parents = null;
+            con = null;
+            bkup = null;
+            closed = false;
+        }
+
+        /**
+         *   Construct buffer according to log info and link buffers together according to pipeline structure.
+         *
+         * @param log Logline info.
+         * @throws IOException
+         */
+        public RecordBuffer(LogLine log) throws IOException
+        {
+            this.log = log;
+            this.parents = new ArrayList<RecordBuffer>();
+            closed = false;
+            bkup = new ArrayList<String>();
+            //Connect to DS according to log info
+            URL url = new URL(data_server_location + log.dstvar);
+            con = (HttpURLConnection)url.openConnection();
+            con.setRequestMethod("PUT");
+            con.setDoOutput(true);
+            con.setDoInput(true);
+            out = con.getOutputStream();
+        }
+
+        /**
+         *   Buffer one line.
+         *
+         * @param line Data line.
+         * @throws IOException
+         */
+        public void record(String line) throws IOException
+        {
+            out.write(line.getBytes());
+            if (null == log.dstvar)
+                bkup.add(line);
+        }
+
+        /**
+         *   Write all buffered data to the appointed output stream.
+         *
+         * @param out Output stream.
+         * @throws IOException
+         */
+        public void sendBackup(OutputStream out) throws IOException
+        {
+            for (String s : bkup)
+            {
+                out.write(s.getBytes());
+            }
+        }
+
+        /**
+         *   Add a parent dependency.
+         *
+         * @param parent Parent buffer node.
+         */
+        public void addParent(RecordBuffer parent)
+        {
+            parents.add(parent);
+        }
+
+        /**
+         *   Flush all buffered data and close the buffer. Send completed logline info to ES server. Return the index
+         * for stored data.
+         *
+         * @param srcidx Data index for the parent buffer.
+         * @return Data index for this buffer.
+         * @throws IOException
+         */
+        public String close(String srcidx) throws IOException
+        {
+            if (closed) return log.dstidx;
+            closed = true;
+            out.close();
+            int resp_code = con.getResponseCode();
+            if (400 == resp_code)
+            {
+                throw new IOException("Data Server Error.");
+            }
+            BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
+            String dstidx = in.readLine();
+            in.close();
+            log.srcidx = srcidx;
+            log.dstidx = dstidx;
+
+            /* Store log info into ES server and infer structure*/
+            String log_json = new Gson().toJson(log);
+            es_slave.send(log_json);
+            inferer.absorb(log.srcvar, log.processor, log.dstvar);
+
+            return dstidx;
+        }
+    }
+
+    /**
+     * @author Trams Wang
+     * @version  2.0
+     * Date Feb. 12, 2016
      *
      *   Handle data requests for PipeServer. Handles ONLY 'GET', 'PUT' and 'POST' methods.
      */
     private class DataHandler implements HttpHandler{
+
         public DataHandler() {}
 
         /**
@@ -243,9 +365,11 @@ public class PipeServer {
             String inputline;
             t.sendResponseHeaders(200, 0);
             OutputStream out = t.getResponseBody();
+            int i = 0;
             while (null != (inputline = in.readLine()))
             {
                 out.write((inputline + '\n').getBytes());
+                System.out.println("GET: " + Integer.toString(i++));
             }
             out.close();
 
@@ -257,8 +381,8 @@ public class PipeServer {
         /**
          *   'PUT' method handler.
          *   Handle 'PUT' request URI of the following form: /?log=encoded_json_string, which receives one json parameter
-         * converted from class LogLine where there are some data members already assigned: srcvar, srcidx, processor
-         * and dstvar. And then pipeline server will pass data and log info to data server and ES server respectively.
+         * converted from class LogLine where there are some data members already assigned: srcvar, processor and dstvar.
+         * And then pipeline server buffers the data and wait to pass them into Data Server.
          *
          * @param t HTTP context.
          * @throws IOException
@@ -271,116 +395,109 @@ public class PipeServer {
             Gson gson = new Gson();
             LogLine log = gson.fromJson(log_json, LogLine.class);
 
-            /* Pass data to DS*/
-            URL url = new URL(data_server_location + log.dstvar);
-            HttpURLConnection ds_con = (HttpURLConnection)url.openConnection();
-            ds_con.setRequestMethod("PUT");
-            ds_con.setDoOutput(true);
-            ds_con.setDoInput(true);
-            OutputStream ds_out = ds_con.getOutputStream();
+            /* Buffering data*/
+            RecordBuffer buffer = buffer_pool.get(log.dstvar);
+            if (null == buffer)
+            {
+                buffer = new RecordBuffer(log);
+                if (null != log.srcvar)
+                {
+                    String[] srcvars = log.srcvar.split(",");
+                    for (String s : srcvars)
+                    {
+                        RecordBuffer tmpbuf = (null == s) ? null : buffer_pool.get(s);
+                        if (null != tmpbuf) buffer.addParent(tmpbuf);
+                    }
+                }
+                buffer_pool.put(log.dstvar, buffer);
+                System.out.println("Buffer created: " + log.dstvar);
+            }
             BufferedReader in = new BufferedReader(new InputStreamReader(t.getRequestBody()));
             String inputline;
             while (null != (inputline = in.readLine()))
             {
-                ds_out.write((inputline + '\n').getBytes());
+                buffer.record(inputline + '\n');
             }
-            ds_out.close();
-            in.close();
-
-            /* Pass destination index to client*/
-            int resp_code = ds_con.getResponseCode();
-            if (400 == resp_code)
-            {
-                throw new IOException("Data Server Error.");
-            }
-            BufferedReader ds_in = new BufferedReader(new InputStreamReader(ds_con.getInputStream()));
-            String dstidx = ds_in.readLine();
-            t.sendResponseHeaders(200, dstidx.getBytes().length);
-            OutputStream out = t.getResponseBody();
-            out.write(dstidx.getBytes());
-            out.close();
-            ds_in.close();
-
-            /* Store log info into ES server*/
-            log.dstidx = dstidx;
-            log_json = gson.toJson(log);
-            es_slave.send(log_json);
-            inferer.absorb(log.srcvar, log.processor, log.dstvar);
+            t.sendResponseHeaders(200, 0);
+            t.getResponseBody().close();
         }
 
         /**
          *   'POST' method handler.
-         *   Same protocol with 'PUT' method. Yet it only called by final storing functions instead of intermediate
-         * stores. It will ask user whether the data is good or not in quality and score the processing unit according
-         * to that answer.
+         *   Handle 'POST' request URI of the following form: /dstvar. It will flush all buffered data to Data Server
+         * send log info to ES server and infer pipeline structure. Finally, it will ask user whether the data is good
+         * or not in quality and score the processing unit according to that answer.
          *
          * @param t HTTP context.
          * @throws IOException
          */
         private void handlePost(HttpExchange t) throws IOException
         {
-            /* Parse the log para*/
-            String log_json = URLDecoder.decode(t.getRequestURI().toString().substring(6), "UTF-8");
-            Gson gson = new Gson();
-            LogLine log = gson.fromJson(log_json, LogLine.class);
-
-            /* Pass data to DS and Answer testing server*/
-            URL url = new URL(data_server_location + log.dstvar);
-            HttpURLConnection ds_con = (HttpURLConnection)url.openConnection();
-            ds_con.setRequestMethod("PUT");
-            ds_con.setDoOutput(true);
-            ds_con.setDoInput(true);
-            OutputStream ds_out = ds_con.getOutputStream();
-            BufferedReader in = new BufferedReader(new InputStreamReader(t.getRequestBody()));
-            String inputline;
-
-            URL chkurl = new URL("http://localhost:6666/");
-            HttpURLConnection chk_con = (HttpURLConnection)chkurl.openConnection();
-            chk_con.setRequestMethod("GET");
-            chk_con.setDoOutput(true);
-            chk_con.setDoInput(true);
-            OutputStream chk_out = chk_con.getOutputStream();
-
-            while (null != (inputline = in.readLine()))
+            String var = t.getRequestURI().toString().substring(1);
+            RecordBuffer buffer = buffer_pool.get(var);
+            if (null == buffer)
             {
-                ds_out.write((inputline + '\n').getBytes());
-                chk_out.write((inputline + '\n').getBytes());
+                String info = "Bad variable name: " + var + "\nAttempt completing record before it begins.\n";
+                t.sendResponseHeaders(400, info.getBytes().length);
+                OutputStream out = t.getResponseBody();
+                out.write(info.getBytes());
+                out.close();
+                throw new IOException(info);
             }
-            ds_out.close();
-            chk_out.close();
-            in.close();
+            /* Send data to scoring server*/
+            URL ans_url = new URL("http://localhost:6666");
+            HttpURLConnection ans_con = (HttpURLConnection)ans_url.openConnection();
+            ans_con.setDoOutput(true);
+            ans_con.setDoInput(true);
+            ans_con.setRequestMethod("GET");
+            OutputStream ans_out = ans_con.getOutputStream();
+            buffer.sendBackup(ans_out);
+            ans_out.close();
 
-            /* Pass destination index to client*/
-            int resp_code = ds_con.getResponseCode();
-            if (400 == resp_code)
-            {
-                throw new IOException("Data Server Error.");
-            }
-            BufferedReader ds_in = new BufferedReader(new InputStreamReader(ds_con.getInputStream()));
-            String dstidx = ds_in.readLine();
-            t.sendResponseHeaders(200, dstidx.getBytes().length);
-            OutputStream out = t.getResponseBody();
-            out.write(dstidx.getBytes());
-            out.close();
-            ds_in.close();
-
-            /* Store log info into ES server*/
-            log.dstidx = dstidx;
-            log_json = gson.toJson(log);
-            es_slave.send(log_json);
+            String dstidx = closeBuffer(buffer);
+            LogLine log = new LogLine();
+            log.srcvar = var;
+            log.srcidx = dstidx;
+            log.processor = var + "_Storer";
+            es_slave.send(new Gson().toJson(log));
             inferer.absorb(log.srcvar, log.processor, log.dstvar);
+            t.sendResponseHeaders(200, dstidx.getBytes().length);
+            t.getResponseBody().write(dstidx.getBytes());
+            t.getResponseBody().close();
 
             /* Score data according to user's specification*/
             System.out.println("Checking for similarity...");
-            resp_code = chk_con.getResponseCode();
+            int resp_code = ans_con.getResponseCode();
             if (400 == resp_code)
             {
                 throw new IOException("Answer Testing Server Error.");
             }
-            Scanner scanner = new Scanner(chk_con.getInputStream());
+            Scanner scanner = new Scanner(ans_con.getInputStream());
             double ans = scanner.nextDouble();
             System.out.println("Similarity is: " + Double.toString(ans));
-            scorer.scorePath(inferer.dataNode(log.srcvar), ans);
+            scorer.scorePath(inferer.dataNode(var), ans);
+        }
+
+        private String closeBuffer(RecordBuffer buffer) throws IOException
+        {
+            if (null == buffer) return null;
+            String srcidx = "";
+            boolean first = true;
+            for (RecordBuffer b : buffer.parents)
+            {
+                if (first)
+                {
+                    srcidx += closeBuffer(b);
+                    first = false;
+                }
+                else
+                {
+                    srcidx += ',' + closeBuffer(b);
+                }
+            }
+            if (first) srcidx = null;
+            buffer_pool.remove(buffer.log.dstvar);
+            return buffer.close(srcidx);
         }
 
         /**
@@ -479,6 +596,7 @@ public class PipeServer {
     private SemanticsInferer inferer;
     private Scorer scorer;
     private PrintWriter log_file;
+    private HashMap<String, RecordBuffer> buffer_pool;
 
     /**
      *   Create an instance with default configuration.
@@ -494,6 +612,7 @@ public class PipeServer {
         es_slave = new ESSlave();
         inferer = new SemanticsInferer();
         scorer = new Scorer();
+        buffer_pool = new HashMap<String, RecordBuffer>();
     }
 
     /**
@@ -516,6 +635,7 @@ public class PipeServer {
         es_slave = new ESSlave(ess_host, ess_port, ProvConfig.DEF_ESS_INDEX, ProvConfig.DEF_ESS_TYPE);
         inferer = new SemanticsInferer();
         scorer = new Scorer();
+        buffer_pool = new HashMap<String, RecordBuffer>();
     }
 
     /**
