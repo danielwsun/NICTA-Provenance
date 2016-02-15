@@ -1,6 +1,8 @@
 package com.nicta.provenance.data;
 
+import com.google.gson.Gson;
 import com.nicta.provenance.ProvConfig;
+import com.nicta.provenance.pipeline.LogLine;
 import com.sun.net.httpserver.HttpContext;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
@@ -8,12 +10,15 @@ import com.sun.net.httpserver.HttpServer;
 
 import java.io.*;
 import java.net.InetSocketAddress;
+import java.net.URLDecoder;
 import java.rmi.server.UID;
+import java.util.ArrayList;
+import java.util.HashMap;
 
 /**
  * @author Trams Wang
- * @version 1.1
- * Date: Jan. 18, 2016
+ * @version 2.0
+ * Date: Feb, 15, 2016
  *
  *   Standalone server for (intermediate)result storing. In provenance system, It receives
  * data from pipeline server and store the data in local FS.
@@ -22,10 +27,47 @@ import java.rmi.server.UID;
  */
 public class DataServer {
 
+    private class Chain{
+        private PrintWriter writer;
+        public ArrayList<Chain> parents;
+        private boolean closed;
+        private String idx;
+        private String var;
+
+        public Chain(String var, String idx) throws IOException
+        {
+            writer = new PrintWriter(data_path + '/' + var + '_' + idx);
+            parents = new ArrayList<Chain>();
+            closed = false;
+            this.idx = idx;
+            this.var = var;
+        }
+
+        public void addParent(Chain par)
+        {
+            parents.add(par);
+        }
+
+        public void record(String s)
+        {
+            writer.println(s);
+        }
+
+        public void close()
+        {
+            if (closed) return;
+            closed = true;
+            writer.close();
+        }
+
+        public String getIdx(){return idx;}
+        public String getVar(){return var;}
+    }
+
     /**
      * @author Trams Wang
-     * @version 1.1
-     * Date: Jan. 18, 2016
+     * @version 2.0
+     * Date: Feb. 15, 2016
      *
      *   Handler class for DataServer. Handles ONLY 'GET' and 'PUT' methods.
      */
@@ -50,6 +92,10 @@ public class DataServer {
                 {
                     handlePut(t);
                 }
+                else if ("POST".equals(method))
+                {
+                    handlePost(t);
+                }
                 else
                 {
                     handleOtherMethods(t);
@@ -58,7 +104,7 @@ public class DataServer {
             catch (IOException e)
             {
                 e.printStackTrace();
-                try
+                /*try
                 {
                     String info = "Error In Data Server";
                     t.sendResponseHeaders(400, info.length());
@@ -70,7 +116,7 @@ public class DataServer {
                 {
                     System.out.println("Data Server Nested Error.");
                     ee.printStackTrace();
-                }
+                }*/
             }
         }
 
@@ -94,6 +140,7 @@ public class DataServer {
             }
             out.close();
             in.close();
+            System.out.println("DS:: GET DONE");
         }
 
         /**
@@ -107,21 +154,60 @@ public class DataServer {
          */
         private void handlePut(HttpExchange t) throws IOException
         {
-            String var = t.getRequestURI().toString().substring(1);
-            String dstidx  = new UID().toString();
-            PrintWriter out = new PrintWriter(data_path + '/' + var + '_' + dstidx);
+            /* Parse the log para*/
+            String log_json = URLDecoder.decode(t.getRequestURI().toString().substring(6), "UTF-8");
+            Gson gson = new Gson();
+            LogLine log = gson.fromJson(log_json, LogLine.class);
+
+            /* Buffering data*/
+            Chain chain = chain_pool.get(log.dstvar);
+            String dstidx;
+            if (null == chain)
+            {
+                dstidx  = new UID().toString();
+                chain = new Chain(log.dstvar, dstidx);
+                String []srcvars = log.srcvar.split(",");
+                for (String s : srcvars)
+                {
+                    Chain tmp = chain_pool.get(s);
+                    if (null != tmp) chain.addParent(tmp);
+                }
+                chain_pool.put(log.dstvar, chain);
+            }
+            else
+            {
+                dstidx = chain.getIdx();
+            }
+
             BufferedReader in = new BufferedReader(new InputStreamReader(t.getRequestBody()));
             String inputline;
             while (null != (inputline = in.readLine()))
             {
-                out.println(inputline);
+                chain.record(inputline);
             }
-            out.close();
             in.close();
             t.sendResponseHeaders(200, dstidx.getBytes().length);
             OutputStream os = t.getResponseBody();
             os.write(dstidx.getBytes());
             os.close();
+        }
+
+        private void handlePost(HttpExchange t) throws IOException
+        {
+            String var = t.getRequestURI().toString().substring(1);
+            Chain chain = chain_pool.get(var);
+            closeChain(chain);
+            t.sendResponseHeaders(200, 0);
+            t.getResponseBody().write("ACK".getBytes());
+            t.getResponseBody().close();
+        }
+
+        private void closeChain(Chain chain)
+        {
+            for (Chain  c : chain.parents)
+                closeChain(c);
+            chain.close();
+            chain_pool.remove(chain.getVar());
         }
 
         /**
@@ -144,6 +230,7 @@ public class DataServer {
     private int port;
     private String data_path;
     private PrintWriter log_file;
+    private HashMap<String, Chain> chain_pool;
 
     /**
      * Create an instance using default settings.
@@ -153,6 +240,7 @@ public class DataServer {
         host = ProvConfig.DEF_DS_HOST;
         port = ProvConfig.DEF_DS_PORT;
         data_path = ProvConfig.DEF_DS_DATA_PATH;
+        chain_pool = new HashMap<String, Chain>();
     }
 
     /**
@@ -168,6 +256,7 @@ public class DataServer {
         this.host = host;
         this.port = port;
         this.data_path = data_path;
+        this.chain_pool = new HashMap<String, Chain>();
     }
 
     /**

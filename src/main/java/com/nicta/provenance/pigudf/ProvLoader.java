@@ -140,6 +140,19 @@ public class ProvLoader extends LoadFunc {
                 {
                     throw new IOException("Pipeline Server Connection Failed!");
                 }
+                BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
+                String dsurl = in.readLine();
+                in.close();
+
+                url = new URL(dsurl);
+                con = (HttpURLConnection)url.openConnection();
+                con.setRequestMethod("GET");
+                con.setDoInput(true);
+                response_code = con.getResponseCode();
+                if (400 == response_code)
+                {
+                    throw new IOException("Data server connection failed!");
+                }
                 reader = new BufferedReader(new InputStreamReader(con.getInputStream()));
             }
             cur = reader.readLine();

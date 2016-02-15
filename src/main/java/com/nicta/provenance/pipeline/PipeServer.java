@@ -14,6 +14,7 @@ import java.net.URL;
 import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Scanner;
 
 /**
@@ -155,122 +156,25 @@ public class PipeServer {
         }
     }
 
-    /**
-     * @author Trams Wang
-     * @version 1.0
-     * Date: Feb. 12, 2016
-     *
-     *   This class is used for buffering data content.
-     */
-    private class RecordBuffer{
-        private OutputStream out;
-        private ArrayList<String> bkup;
-        private HttpURLConnection con;
+    private class Tunnel{
         public LogLine log;
-        public ArrayList<RecordBuffer> parents;
-        private boolean closed;
+        public HttpURLConnection con;
 
-        /**
-         *   A deprecated default constructor.
-         */
-        private RecordBuffer()
+        public Tunnel()
         {
-            out = null;
             log = null;
-            parents = null;
             con = null;
-            bkup = null;
-            closed = false;
         }
 
-        /**
-         *   Construct buffer according to log info and link buffers together according to pipeline structure.
-         *
-         * @param log Logline info.
-         * @throws IOException
-         */
-        public RecordBuffer(LogLine log) throws IOException
+        public void close() throws IOException
         {
-            this.log = log;
-            this.parents = new ArrayList<RecordBuffer>();
-            closed = false;
-            bkup = new ArrayList<String>();
-            //Connect to DS according to log info
-            URL url = new URL(data_server_location + log.dstvar);
-            con = (HttpURLConnection)url.openConnection();
-            con.setRequestMethod("PUT");
-            con.setDoOutput(true);
-            con.setDoInput(true);
-            out = con.getOutputStream();
-        }
-
-        /**
-         *   Buffer one line.
-         *
-         * @param line Data line.
-         * @throws IOException
-         */
-        public void record(String line) throws IOException
-        {
-            out.write(line.getBytes());
-            if (null == log.dstvar)
-                bkup.add(line);
-        }
-
-        /**
-         *   Write all buffered data to the appointed output stream.
-         *
-         * @param out Output stream.
-         * @throws IOException
-         */
-        public void sendBackup(OutputStream out) throws IOException
-        {
-            for (String s : bkup)
-            {
-                out.write(s.getBytes());
-            }
-        }
-
-        /**
-         *   Add a parent dependency.
-         *
-         * @param parent Parent buffer node.
-         */
-        public void addParent(RecordBuffer parent)
-        {
-            parents.add(parent);
-        }
-
-        /**
-         *   Flush all buffered data and close the buffer. Send completed logline info to ES server. Return the index
-         * for stored data.
-         *
-         * @param srcidx Data index for the parent buffer.
-         * @return Data index for this buffer.
-         * @throws IOException
-         */
-        public String close(String srcidx) throws IOException
-        {
-            if (closed) return log.dstidx;
-            closed = true;
-            out.close();
-            int resp_code = con.getResponseCode();
-            if (400 == resp_code)
-            {
-                throw new IOException("Data Server Error.");
-            }
+            con.getOutputStream().close();
+            int respcode = con.getResponseCode();
+            if (400 == respcode) throw new IOException("Data server Error");
             BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
             String dstidx = in.readLine();
             in.close();
-            log.srcidx = srcidx;
             log.dstidx = dstidx;
-
-            /* Store log info into ES server and infer structure*/
-            String log_json = new Gson().toJson(log);
-            es_slave.send(log_json);
-            inferer.absorb(log.srcvar, log.processor, log.dstvar);
-
-            return dstidx;
         }
     }
 
@@ -317,7 +221,7 @@ public class PipeServer {
             catch (Exception e)
             {
                 e.printStackTrace();
-                try
+                /*try
                 {
                     String info = "Error In Pipeline Server";
                     t.sendResponseHeaders(400, info.length());
@@ -329,7 +233,7 @@ public class PipeServer {
                 {
                     System.out.println("Pipeline Server Nested Error.");
                     ee.printStackTrace();
-                }
+                }*/
             }
         }
 
@@ -348,34 +252,17 @@ public class PipeServer {
             Gson gson = new Gson();
             LogLine log = gson.fromJson(log_json, LogLine.class);
 
-            /* Connect to Data Server*/
-            URL url = new URL(data_server_location + log.dstidx);
-            HttpURLConnection con = (HttpURLConnection)url.openConnection();
-            con.setRequestMethod("GET");
-            con.setDoInput(true);
-            con.setDoOutput(false);
-            int rep_code = t.getResponseCode();
-            if (400 == rep_code)
-            {
-                throw new IOException("Data Server Error.");
-            }
-            BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
-
-            /* Passing data from DS to client*/
-            String inputline;
-            t.sendResponseHeaders(200, 0);
+            /* Send DataServer url to client*/
+            String dsurl = data_server_location + log.dstidx;
+            t.sendResponseHeaders(200, dsurl.getBytes().length);
             OutputStream out = t.getResponseBody();
-            int i = 0;
-            while (null != (inputline = in.readLine()))
-            {
-                out.write((inputline + '\n').getBytes());
-                System.out.println("GET: " + Integer.toString(i++));
-            }
+            out.write(dsurl.getBytes());
             out.close();
 
             /* Store log info into ES server*/
             es_slave.send(log_json);
             inferer.absorb(log.srcvar, log.processor, log.dstvar);
+            System.out.println("PS:: GET DONE");
         }
 
         /**
@@ -395,29 +282,29 @@ public class PipeServer {
             Gson gson = new Gson();
             LogLine log = gson.fromJson(log_json, LogLine.class);
 
-            /* Buffering data*/
-            RecordBuffer buffer = buffer_pool.get(log.dstvar);
-            if (null == buffer)
+            Tunnel tunnel = tun_pool.get(log.dstvar);
+            if (null == tunnel)
             {
-                buffer = new RecordBuffer(log);
-                if (null != log.srcvar)
-                {
-                    String[] srcvars = log.srcvar.split(",");
-                    for (String s : srcvars)
-                    {
-                        RecordBuffer tmpbuf = (null == s) ? null : buffer_pool.get(s);
-                        if (null != tmpbuf) buffer.addParent(tmpbuf);
-                    }
-                }
-                buffer_pool.put(log.dstvar, buffer);
-                System.out.println("Buffer created: " + log.dstvar);
+                URL url = new URL(data_server_location + t.getRequestURI().toString().substring(1));
+                HttpURLConnection con = (HttpURLConnection)url.openConnection();
+                con.setDoOutput(true);
+                con.setDoInput(true);
+                con.setRequestMethod("PUT");
+
+                tunnel = new Tunnel();
+                tunnel.con = con;
+                tunnel.log = log;
+
+                tun_pool.put(log.dstvar, tunnel);
             }
             BufferedReader in = new BufferedReader(new InputStreamReader(t.getRequestBody()));
+            OutputStream out = tunnel.con.getOutputStream();
             String inputline;
             while (null != (inputline = in.readLine()))
             {
-                buffer.record(inputline + '\n');
+                out.write((inputline+'\n').getBytes());
             }
+            in.close();
             t.sendResponseHeaders(200, 0);
             t.getResponseBody().close();
         }
@@ -433,17 +320,27 @@ public class PipeServer {
          */
         private void handlePost(HttpExchange t) throws IOException
         {
-            String var = t.getRequestURI().toString().substring(1);
-            RecordBuffer buffer = buffer_pool.get(var);
-            if (null == buffer)
+            /* Parse the log para*/
+            String log_json = URLDecoder.decode(t.getRequestURI().toString().substring(6), "UTF-8");
+            Gson gson = new Gson();
+            LogLine log = gson.fromJson(log_json, LogLine.class);
+
+            Tunnel tunnel = tun_pool.get(log.dstvar);
+            if (null == tunnel)
             {
-                String info = "Bad variable name: " + var + "\nAttempt completing record before it begins.\n";
-                t.sendResponseHeaders(400, info.getBytes().length);
-                OutputStream out = t.getResponseBody();
-                out.write(info.getBytes());
-                out.close();
-                throw new IOException(info);
+                URL url = new URL(data_server_location + t.getRequestURI().toString().substring(1));
+                HttpURLConnection con = (HttpURLConnection)url.openConnection();
+                con.setDoOutput(true);
+                con.setDoInput(true);
+                con.setRequestMethod("PUT");
+
+                tunnel = new Tunnel();
+                tunnel.con = con;
+                tunnel.log = log;
+
+                tun_pool.put(log.dstvar, tunnel);
             }
+
             /* Send data to scoring server*/
             URL ans_url = new URL("http://localhost:6666");
             HttpURLConnection ans_con = (HttpURLConnection)ans_url.openConnection();
@@ -451,23 +348,50 @@ public class PipeServer {
             ans_con.setDoInput(true);
             ans_con.setRequestMethod("GET");
             OutputStream ans_out = ans_con.getOutputStream();
-            buffer.sendBackup(ans_out);
-            ans_out.close();
 
-            String dstidx = closeBuffer(buffer);
-            LogLine log = new LogLine();
-            log.srcvar = var;
-            log.srcidx = dstidx;
-            log.processor = var + "_Storer";
-            es_slave.send(new Gson().toJson(log));
-            inferer.absorb(log.srcvar, log.processor, log.dstvar);
-            t.sendResponseHeaders(200, dstidx.getBytes().length);
-            t.getResponseBody().write(dstidx.getBytes());
+            BufferedReader in = new BufferedReader(new InputStreamReader(t.getRequestBody()));
+            OutputStream out = tunnel.con.getOutputStream();
+            String inputline;
+            while (null != (inputline = in.readLine()))
+            {
+                ans_out.write((inputline+'\n').getBytes());
+                out.write((inputline+'\n').getBytes());
+            }
+            in.close();
+            t.sendResponseHeaders(200, 0);
             t.getResponseBody().close();
+
+            for (Map.Entry<String, Tunnel> ent: tun_pool.entrySet())
+            {
+                Tunnel tun = ent.getValue();
+                tun.close();
+                es_slave.send(gson.toJson(tun.log));
+                inferer.absorb(tun.log.srcvar, tun.log.processor, tun.log.dstvar);
+            }
+
+            /* Trigger DS flush*/
+            URL dsurl = new URL(data_server_location + log.dstvar);
+            HttpURLConnection dscon = (HttpURLConnection)dsurl.openConnection();
+            dscon.setRequestMethod("POST");
+            dscon.setDoOutput(false);
+            dscon.setDoInput(true);
+            int resp_code = dscon.getResponseCode();
+            if (400 == resp_code)
+            {
+                throw new IOException("Data Server Error");
+            }
+            dscon.getInputStream().close();
+
+            LogLine end_log = new LogLine();
+            end_log.srcvar = log.dstvar;
+            end_log.srcidx = log.dstidx;
+            end_log.processor = log.dstvar + "_Storer";
+            es_slave.send(gson.toJson(end_log));
+            inferer.absorb(end_log.srcvar, end_log.processor, end_log.dstvar);
 
             /* Score data according to user's specification*/
             System.out.println("Checking for similarity...");
-            int resp_code = ans_con.getResponseCode();
+            resp_code = ans_con.getResponseCode();
             if (400 == resp_code)
             {
                 throw new IOException("Answer Testing Server Error.");
@@ -475,29 +399,7 @@ public class PipeServer {
             Scanner scanner = new Scanner(ans_con.getInputStream());
             double ans = scanner.nextDouble();
             System.out.println("Similarity is: " + Double.toString(ans));
-            scorer.scorePath(inferer.dataNode(var), ans);
-        }
-
-        private String closeBuffer(RecordBuffer buffer) throws IOException
-        {
-            if (null == buffer) return null;
-            String srcidx = "";
-            boolean first = true;
-            for (RecordBuffer b : buffer.parents)
-            {
-                if (first)
-                {
-                    srcidx += closeBuffer(b);
-                    first = false;
-                }
-                else
-                {
-                    srcidx += ',' + closeBuffer(b);
-                }
-            }
-            if (first) srcidx = null;
-            buffer_pool.remove(buffer.log.dstvar);
-            return buffer.close(srcidx);
+            scorer.scorePath(inferer.dataNode(log.dstvar), ans);
         }
 
         /**
@@ -596,7 +498,8 @@ public class PipeServer {
     private SemanticsInferer inferer;
     private Scorer scorer;
     private PrintWriter log_file;
-    private HashMap<String, RecordBuffer> buffer_pool;
+    private HashMap<String, Tunnel> tun_pool;
+    //private HashMap<String, LogLine> log_pool;
 
     /**
      *   Create an instance with default configuration.
@@ -612,7 +515,8 @@ public class PipeServer {
         es_slave = new ESSlave();
         inferer = new SemanticsInferer();
         scorer = new Scorer();
-        buffer_pool = new HashMap<String, RecordBuffer>();
+        tun_pool = new HashMap<String, Tunnel>();
+        //log_pool = new HashMap<String, LogLine>();
     }
 
     /**
@@ -635,7 +539,8 @@ public class PipeServer {
         es_slave = new ESSlave(ess_host, ess_port, ProvConfig.DEF_ESS_INDEX, ProvConfig.DEF_ESS_TYPE);
         inferer = new SemanticsInferer();
         scorer = new Scorer();
-        buffer_pool = new HashMap<String, RecordBuffer>();
+        tun_pool = new HashMap<String, Tunnel>();
+        //log_pool = new HashMap<String, LogLine>();
     }
 
     /**

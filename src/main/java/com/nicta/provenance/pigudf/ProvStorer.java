@@ -63,7 +63,6 @@ public class ProvStorer extends StoreFunc{
     public static class ProvRecordWriter extends RecordWriter<Integer, String> {
         private DataOutputStream out;
         private HttpURLConnection con;
-        private String closeurl;
 
         /**
          *   Create an instance of writer that will write into system output.
@@ -80,15 +79,10 @@ public class ProvStorer extends StoreFunc{
         {
             URL url = new URL(surl);
             con = (HttpURLConnection)url.openConnection();
-            con.setRequestMethod("PUT");
+            con.setRequestMethod("POST");
             con.setDoOutput(true);
             con.setDoInput(true);
             out = new DataOutputStream(con.getOutputStream());
-
-            String [] tmp = surl.split("[?]log=");
-            closeurl = tmp[0];
-            LogLine log = new Gson().fromJson(URLDecoder.decode(tmp[1], "UTF-8"), LogLine.class);
-            closeurl += log.dstvar;
         }
 
         /**
@@ -106,24 +100,13 @@ public class ProvStorer extends StoreFunc{
             {
                 throw new IOException("Pipeline server writing failed!");
             }
-
-            URL url = new URL(closeurl);
-            con = (HttpURLConnection)url.openConnection();
-            con.setRequestMethod("POST");
-            con.setDoOutput(false);
-            con.setDoInput(true);
-            System.out.println("Store signal triggered.");
-            resp_code = con.getResponseCode();
-            if (400 == resp_code)
-            {
-                throw new IOException("Pipeline server writing failed!");
-            }
             BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
             String inputline;
             while (null != (inputline = in.readLine()))
             {
                 System.out.println("Storing Response: " + inputline);
             }
+            in.close();
         }
 
         /**

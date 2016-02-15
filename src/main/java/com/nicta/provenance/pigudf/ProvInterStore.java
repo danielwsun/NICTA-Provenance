@@ -109,9 +109,9 @@ public class ProvInterStore extends EvalFunc<Tuple>{
         out.write((result + '\n').getBytes());
         out.close();
         //System.out.println("--RESULT: " + result);
-        System.out.println("----------------------$$$$$$$$$$$$$$$$$$$$");
+        //System.out.println("----------------------$$$$$$$$$$$$$$$$$$$$");
         int resp_code = con.getResponseCode();
-        System.out.println("---------------**************************");
+        //System.out.println("---------------**************************");
         if (200 != resp_code)
         {
             throw new IOException("Intermediate data storing failed!");
