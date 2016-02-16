@@ -27,43 +27,6 @@ import java.util.HashMap;
  */
 public class DataServer {
 
-    private class Chain{
-        private PrintWriter writer;
-        public ArrayList<Chain> parents;
-        private boolean closed;
-        private String idx;
-        private String var;
-
-        public Chain(String var, String idx) throws IOException
-        {
-            writer = new PrintWriter(data_path + '/' + var + '_' + idx);
-            parents = new ArrayList<Chain>();
-            closed = false;
-            this.idx = idx;
-            this.var = var;
-        }
-
-        public void addParent(Chain par)
-        {
-            parents.add(par);
-        }
-
-        public void record(String s)
-        {
-            writer.println(s);
-        }
-
-        public void close()
-        {
-            if (closed) return;
-            closed = true;
-            writer.close();
-        }
-
-        public String getIdx(){return idx;}
-        public String getVar(){return var;}
-    }
-
     /**
      * @author Trams Wang
      * @version 2.0
@@ -91,10 +54,6 @@ public class DataServer {
                 else if ("PUT".equals(method))
                 {
                     handlePut(t);
-                }
-                else if ("POST".equals(method))
-                {
-                    handlePost(t);
                 }
                 else
                 {
@@ -154,60 +113,18 @@ public class DataServer {
          */
         private void handlePut(HttpExchange t) throws IOException
         {
-            /* Parse the log para*/
-            String log_json = URLDecoder.decode(t.getRequestURI().toString().substring(6), "UTF-8");
-            Gson gson = new Gson();
-            LogLine log = gson.fromJson(log_json, LogLine.class);
-
-            /* Buffering data*/
-            Chain chain = chain_pool.get(log.dstvar);
-            String dstidx;
-            if (null == chain)
-            {
-                dstidx  = new UID().toString();
-                chain = new Chain(log.dstvar, dstidx);
-                String []srcvars = log.srcvar.split(",");
-                for (String s : srcvars)
-                {
-                    Chain tmp = chain_pool.get(s);
-                    if (null != tmp) chain.addParent(tmp);
-                }
-                chain_pool.put(log.dstvar, chain);
-            }
-            else
-            {
-                dstidx = chain.getIdx();
-            }
-
-            BufferedReader in = new BufferedReader(new InputStreamReader(t.getRequestBody()));
+            String var = t.getRequestURI().toString().substring(1);
+            String idx = new UID().toString();
+            PrintWriter out = new PrintWriter(data_path + '/' + var + '_' + idx);
             String inputline;
+            BufferedReader in = new BufferedReader(new InputStreamReader(t.getRequestBody()));
             while (null != (inputline = in.readLine()))
             {
-                chain.record(inputline);
+                out.println(inputline);
             }
-            in.close();
-            t.sendResponseHeaders(200, dstidx.getBytes().length);
-            OutputStream os = t.getResponseBody();
-            os.write(dstidx.getBytes());
-            os.close();
-        }
-
-        private void handlePost(HttpExchange t) throws IOException
-        {
-            String var = t.getRequestURI().toString().substring(1);
-            Chain chain = chain_pool.get(var);
-            closeChain(chain);
-            t.sendResponseHeaders(200, 0);
-            t.getResponseBody().write("ACK".getBytes());
+            t.sendResponseHeaders(200, idx.getBytes().length);
+            t.getResponseBody().write(idx.getBytes());
             t.getResponseBody().close();
-        }
-
-        private void closeChain(Chain chain)
-        {
-            for (Chain  c : chain.parents)
-                closeChain(c);
-            chain.close();
-            chain_pool.remove(chain.getVar());
         }
 
         /**
@@ -230,7 +147,6 @@ public class DataServer {
     private int port;
     private String data_path;
     private PrintWriter log_file;
-    private HashMap<String, Chain> chain_pool;
 
     /**
      * Create an instance using default settings.
@@ -240,7 +156,6 @@ public class DataServer {
         host = ProvConfig.DEF_DS_HOST;
         port = ProvConfig.DEF_DS_PORT;
         data_path = ProvConfig.DEF_DS_DATA_PATH;
-        chain_pool = new HashMap<String, Chain>();
     }
 
     /**
@@ -256,7 +171,6 @@ public class DataServer {
         this.host = host;
         this.port = port;
         this.data_path = data_path;
-        this.chain_pool = new HashMap<String, Chain>();
     }
 
     /**
@@ -264,7 +178,7 @@ public class DataServer {
      */
     public void initiate() throws IOException
     {
-            /* Detect path for data files, if not exist, create one.*/
+        /* Detect path for data files, if not exist, create one.*/
         File dir = new File(data_path);
         if (dir.exists())
         {

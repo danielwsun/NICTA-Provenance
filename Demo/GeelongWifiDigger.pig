@@ -69,7 +69,7 @@ delcln_loc_counted = FOREACH delcln_loc_grouped GENERATE group AS LocationID:cha
 delcln_loc_ordered = ORDER delcln_loc_counted BY TotalAccess DESC;
 
 /* Store result*/
-STORE delcln_loc_ordered INTO 'localhost/8888' USING com.nicta.provenance.pigudf.ProvStorer('delcln_loc_ordered', 'DelLocOrdering', 'delcln_loc_ordered');
+STORE delcln_loc_ordered INTO 'localhost/8888' USING com.nicta.provenance.pigudf.ProvStorer('delcln_loc_counted', 'DelLocOrdering', 'delcln_loc_ordered');
 
 -------------------------------------------------------------------------------------------------------------------
 -- Sort URLs according to total access.

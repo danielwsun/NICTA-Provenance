@@ -159,15 +159,19 @@ public class PipeServer {
     private class Tunnel{
         public LogLine log;
         public HttpURLConnection con;
+        public boolean closed;
 
         public Tunnel()
         {
             log = null;
             con = null;
+            closed = false;
         }
 
-        public void close() throws IOException
+        public String close() throws IOException
         {
+            if (closed) return log.dstidx;
+            closed = true;
             con.getOutputStream().close();
             int respcode = con.getResponseCode();
             if (400 == respcode) throw new IOException("Data server Error");
@@ -175,6 +179,7 @@ public class PipeServer {
             String dstidx = in.readLine();
             in.close();
             log.dstidx = dstidx;
+            return dstidx;
         }
     }
 
@@ -285,7 +290,7 @@ public class PipeServer {
             Tunnel tunnel = tun_pool.get(log.dstvar);
             if (null == tunnel)
             {
-                URL url = new URL(data_server_location + t.getRequestURI().toString().substring(1));
+                URL url = new URL(data_server_location + log.dstvar);
                 HttpURLConnection con = (HttpURLConnection)url.openConnection();
                 con.setDoOutput(true);
                 con.setDoInput(true);
@@ -297,15 +302,17 @@ public class PipeServer {
 
                 tun_pool.put(log.dstvar, tunnel);
             }
-            BufferedReader in = new BufferedReader(new InputStreamReader(t.getRequestBody()));
             OutputStream out = tunnel.con.getOutputStream();
+
+
+            BufferedReader in = new BufferedReader(new InputStreamReader(t.getRequestBody()));
             String inputline;
             while (null != (inputline = in.readLine()))
             {
                 out.write((inputline+'\n').getBytes());
             }
             in.close();
-            t.sendResponseHeaders(200, 0);
+            t.sendResponseHeaders(200, -1);
             t.getResponseBody().close();
         }
 
@@ -328,7 +335,7 @@ public class PipeServer {
             Tunnel tunnel = tun_pool.get(log.dstvar);
             if (null == tunnel)
             {
-                URL url = new URL(data_server_location + t.getRequestURI().toString().substring(1));
+                URL url = new URL(data_server_location + log.dstvar);
                 HttpURLConnection con = (HttpURLConnection)url.openConnection();
                 con.setDoOutput(true);
                 con.setDoInput(true);
@@ -340,6 +347,7 @@ public class PipeServer {
 
                 tun_pool.put(log.dstvar, tunnel);
             }
+            OutputStream out = tunnel.con.getOutputStream();
 
             /* Send data to scoring server*/
             URL ans_url = new URL("http://localhost:6666");
@@ -350,7 +358,6 @@ public class PipeServer {
             OutputStream ans_out = ans_con.getOutputStream();
 
             BufferedReader in = new BufferedReader(new InputStreamReader(t.getRequestBody()));
-            OutputStream out = tunnel.con.getOutputStream();
             String inputline;
             while (null != (inputline = in.readLine()))
             {
@@ -361,26 +368,7 @@ public class PipeServer {
             t.sendResponseHeaders(200, 0);
             t.getResponseBody().close();
 
-            for (Map.Entry<String, Tunnel> ent: tun_pool.entrySet())
-            {
-                Tunnel tun = ent.getValue();
-                tun.close();
-                es_slave.send(gson.toJson(tun.log));
-                inferer.absorb(tun.log.srcvar, tun.log.processor, tun.log.dstvar);
-            }
-
-            /* Trigger DS flush*/
-            URL dsurl = new URL(data_server_location + log.dstvar);
-            HttpURLConnection dscon = (HttpURLConnection)dsurl.openConnection();
-            dscon.setRequestMethod("POST");
-            dscon.setDoOutput(false);
-            dscon.setDoInput(true);
-            int resp_code = dscon.getResponseCode();
-            if (400 == resp_code)
-            {
-                throw new IOException("Data Server Error");
-            }
-            dscon.getInputStream().close();
+            closeTunnel(log.dstvar);
 
             LogLine end_log = new LogLine();
             end_log.srcvar = log.dstvar;
@@ -391,7 +379,7 @@ public class PipeServer {
 
             /* Score data according to user's specification*/
             System.out.println("Checking for similarity...");
-            resp_code = ans_con.getResponseCode();
+            int resp_code = ans_con.getResponseCode();
             if (400 == resp_code)
             {
                 throw new IOException("Answer Testing Server Error.");
@@ -400,6 +388,30 @@ public class PipeServer {
             double ans = scanner.nextDouble();
             System.out.println("Similarity is: " + Double.toString(ans));
             scorer.scorePath(inferer.dataNode(log.dstvar), ans);
+        }
+
+        private String closeTunnel(String var) throws IOException
+        {
+            Tunnel t = tun_pool.get(var);
+            if (null == t) return null;
+            String [] srcvars = t.log.srcvar.split(",");
+            String srcidx = "";
+            boolean first = true;
+            for (String s : srcvars)
+            {
+                String idx = closeTunnel(s);
+                if (null != idx)
+                {
+                    srcidx += (first)?idx:(','+idx);
+                    first = false;
+                }
+            }
+            t.log.srcidx = ("".equals(srcidx))?null:srcidx;
+            t.close();
+            tun_pool.remove(var);
+            es_slave.send(new Gson().toJson(t.log));
+            inferer.absorb(t.log.srcvar, t.log.processor, t.log.dstvar);
+            return t.log.dstidx;
         }
 
         /**
