@@ -125,6 +125,7 @@ public class DataServer {
             t.sendResponseHeaders(200, idx.getBytes().length);
             t.getResponseBody().write(idx.getBytes());
             t.getResponseBody().close();
+            out.close();
         }
 
         /**

@@ -1,0 +1,15 @@
+Pig:
+	1.How can you make Pig Latin accept a new rule: Eevery relation(variable) can only be assigned just once?
+	
+Hadoop:
+	1.Given you chuncks of data in the following schema: (LocationID, UserID, LogOnTime, AccessCount). It records when and how many times a user accesses the web service at certain location. We're going to analyze the overall temperature(namely, totoal number of accesses) of all locations. Please write a Pig Latin script to do complete the task. And describe how those data will be processed in Hadoop framework.
+
+Log:
+	1.Suppose there's a data processing pipeline which is able to generate logs after each step of process. Those logs will be used to track intermediate data and processing infomation. Please propose a schema for that log and explain why. 
+	2.If you are going to store those logs into Elasticsearch, what mapping will you apply?
+
+Query:
+	1.Please explain how a compiler(interpreter) compiles(interprets) lines of code.
+	2.Design and implement a website for searching and displaying data. Data should be stored in MongoDB. You are free to add any other elements on the web page to make it beatiful, simple and meaningful.(E.g. A logo image, a navigation bar)
+
+
