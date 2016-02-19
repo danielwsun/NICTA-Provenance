@@ -37,7 +37,7 @@ DEFINE CleanByRep test.CleanByRep('19');
 -------------------------------------------------------------------------------------------------------------------
 /* We may not assign the schema for now, because there will be some data that could not be
  * correctly parsed.*/
-raw = LOAD 'localhost/8888' USING com.nicta.provenance.pigudf.ProvLoader('WifiStatusTotal.csv', 'raw');
+raw = LOAD 'localhost/8888' USING com.nicta.provenance.pigudf.ProvLoader('Lines_3K.csv', 'raw');
 
 delcln = FILTER (FOREACH raw GENERATE FLATTEN(CleanByDel(*))) BY NOT ($0 MATCHES '');
 delcln = FOREACH delcln GENERATE FLATTEN(ProvInterStore('raw', 'CleanByDelete', 'delcln', *));

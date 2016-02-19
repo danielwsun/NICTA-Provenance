@@ -2,11 +2,13 @@ PIGLATIN="GeelongWifiDiggerProv.pig";
 LOGFILE="PigTestLog.log";
 TIMEFILE="PigTestTime.log";
 
-for i in $(seq 1 5)
+for i in $(seq 1 3)
 do
-    #replace='s/GeelongWifiStatus.*[.]csv/WifiStatus_'${i}'.csv/g';
-    replace='s/WifiStatus.*[.]csv/WifiStatusTotal.csv/g';
-    sed -i $replace $PIGLATIN;
-    time pig -x local $PIGLATIN &> $LOGFILE;
+    sed -i 's/Lines_.*K[.]csv/Lines_'${i}K'.csv/g' $PIGLATIN;
+    echo Test \#${i}: >> $TIMEFILE;
+    pig -x local $PIGLATIN &> $LOGFILE;
+    cat $LOGFILE | grep '(.*ms)' >> $TIMEFILE;
     echo Test \#${i} Done.
 done
+
+PIGLATIN="GeelongWifiDigger.pig";
