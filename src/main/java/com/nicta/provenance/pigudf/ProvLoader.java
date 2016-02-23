@@ -26,7 +26,7 @@ import java.util.List;
  *
  *   Provenance loading function. Syntax for using this function in Pig Latin goes below:
  *
- *   varname = LOAD 'host/port' USING com.nicta.provenance.pigudf.ProvLoader('srcidx', 'varname') AS ...;
+ *   varname = LOAD 'host/port' USING com.nicta.provenance.pigudf.ProvLoader('srcidx', 'varname') [AS ...];
  *
  *   Where 'host' and 'port' are host address and port for pipeline server; 'varname' is the name of the
  * variable that receives the result provided by LOAD; 'srcidx' is the index of source data.
@@ -89,10 +89,10 @@ public class ProvLoader extends LoadFunc {
 
     /**
      * @author Trams Wang
-     * @version 1.1
-     * Date: Jan. 20, 2016
+     * @version 1.2
+     * Date: Feb. 12, 2016
      *
-     *   Customized Hadoop reader that reads data from pipeline server.
+     *   Customized Hadoop reader that reads data from pipeline server and data server.
      */
     public static class ProvRecordReader extends RecordReader<Integer,String> {
         private BufferedReader reader;
@@ -287,8 +287,8 @@ public class ProvLoader extends LoadFunc {
     /**
      *   Initiate the loading procedure with user specified configuration.
      *
-     * @param srcidx Source index denotes the source data.
-     * @param dstvar Pig Latin variable name.
+     * @param srcidx Source index denoting the source data.
+     * @param dstvar Pig Latin variable name that will receive data.
      */
     public ProvLoader(String srcidx, String dstvar)
     {
@@ -311,7 +311,7 @@ public class ProvLoader extends LoadFunc {
      *   Remain location string untouched.
      *
      * @param location Origin location string 'host/port'
-     * @param curDir Current directory, no use.
+     * @param curDir No use.
      * @return Location string.
      */
     /* Remain the index as what user specified in Pig Latin script*/

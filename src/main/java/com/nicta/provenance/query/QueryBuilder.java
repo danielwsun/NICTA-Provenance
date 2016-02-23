@@ -7,6 +7,15 @@ import java.util.Stack;
 /**
  * Created by babyfish on 16-2-1.
  */
+
+/**
+ * @author TramsWang
+ * @version 2.0
+ * Date: Feb. 1, 2016
+ *
+ *   This class is used for parsing query expressions. It converts SQL-like query expressions into elasticsearch query
+ * jsons.
+ */
 public class QueryBuilder {
     /* DSL operators*/
     public static final String  TV_EOL = "";
@@ -30,6 +39,13 @@ public class QueryBuilder {
     public static final int     TT_OP_LT = 8;
     public static final int     TT_PARA = 9;
 
+    /**
+     * @author TramsWang
+     * @version 1.0
+     * Date: Feb. 1, 2016
+     *
+     *   Wrapper class for tokens in query strings.
+     */
     private class Token{
         public int type;
         public String val;
@@ -47,6 +63,13 @@ public class QueryBuilder {
         }
     }
 
+    /**
+     * @author TramsWang
+     * @version 1.0
+     * Date: Feb. 1, 2016
+     *
+     *   Expression node in the syntax tree.
+     */
     private class Expression{
         Expression le;
         Token lt;
@@ -63,6 +86,11 @@ public class QueryBuilder {
             re = null;
         }
 
+        /**
+         *   Convert one syntax tree rooted by this node to a SQL-like expression string.
+         *
+         * @return Expression string.
+         */
         public String toString()
         {
             if (null == op) return "null";
@@ -90,6 +118,12 @@ public class QueryBuilder {
             return result;
         }
 
+        /**
+         *   Convert one syntax tree rooted by this node to an elasticsearch query json body.
+         *
+         * @return Expression json string.
+         * @throws IOException
+         */
         public String toJSON() throws IOException
         {
             String result = null;
@@ -121,6 +155,13 @@ public class QueryBuilder {
         }
     }
 
+    /**
+     * @author TramsWang
+     * @version 1.0
+     * Date: Feb. 1, 2016
+     *
+     *   This class parses query string into a series of tokens.
+     */
     private class TokenScanner {
 
         private String buf;
@@ -128,12 +169,22 @@ public class QueryBuilder {
 
         private TokenScanner(){}
 
+        /**
+         *   Initiate scanner with a query string.
+         *
+         * @param buf Query string.
+         */
         public TokenScanner(String buf)
         {
             this.buf = buf;
             idx = 0;
         }
 
+        /**
+         *   Scan for next token in query string.
+         *
+         * @return Next token in the string.
+         */
         public Token nextToken()
         {
             skipBlanks();
@@ -196,12 +247,21 @@ public class QueryBuilder {
             return t;
         }
 
+        /**
+         *   Skip blank characters in the input string.
+         */
         private void skipBlanks()
         {
             int len = buf.length();
             for (; (idx < len) && isBlank(buf.charAt(idx)); idx++);
         }
 
+        /**
+         *   Check whether one character is considered blank.
+         *
+         * @param c Character
+         * @return Whether parameter character is considered blank.
+         */
         private boolean isBlank(char c)
         {
             switch (c)
@@ -217,6 +277,13 @@ public class QueryBuilder {
 
     public QueryBuilder(){}
 
+    /**
+     *   Convert SQL-like query expression string into complete elasticsearch query json.
+     *
+     * @param query SQL-like query expression string.
+     * @return Elasticsearch query json string.
+     * @throws IOException
+     */
     public String build(String query) throws IOException
     {
         Expression root = parseSyntaxTree(query);
@@ -224,6 +291,13 @@ public class QueryBuilder {
         return result;
     }
 
+    /**
+     *   Print json in a pretty look.
+     *
+     * @param json Json string.
+     * @param out Output stream.
+     * @throws IOException
+     */
     public void printPrettyJSON(String json, OutputStream out) throws IOException
     {
         int indent = 0;
@@ -258,6 +332,13 @@ public class QueryBuilder {
         }
     }
 
+    /**
+     *   Parse SQL-like query expressing string into an abstract syntax tree.
+     *
+     * @param query SQL-like query expression string.
+     * @return Root of the syntax tree.
+     * @throws IOException
+     */
     private Expression parseSyntaxTree(String query) throws IOException
     {
         TokenScanner scanner = new TokenScanner(query);
@@ -353,6 +434,12 @@ public class QueryBuilder {
         }
     }
 
+    /**
+     *   Reduce expression nodes on the stack.
+     *
+     * @param stack Expression stack.
+     * @throws IOException
+     */
     private void foldPara(Stack<Object> stack) throws IOException
     {
         Token l1 = (Token)stack.pop();
@@ -398,6 +485,12 @@ public class QueryBuilder {
         }
     }
 
+    /**
+     *   Reduce expression nodes on the stack.
+     *
+     * @param stack Expression stack.
+     * @throws IOException
+     */
     private void foldExpression(Stack<Object> stack) throws IOException
     {
         Expression rexp  = (Expression)stack.pop();

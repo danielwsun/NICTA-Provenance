@@ -1,8 +1,6 @@
 package com.nicta.provenance.data;
 
-import com.google.gson.Gson;
 import com.nicta.provenance.ProvConfig;
-import com.nicta.provenance.pipeline.LogLine;
 import com.sun.net.httpserver.HttpContext;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
@@ -10,20 +8,23 @@ import com.sun.net.httpserver.HttpServer;
 
 import java.io.*;
 import java.net.InetSocketAddress;
-import java.net.URLDecoder;
 import java.rmi.server.UID;
-import java.util.ArrayList;
-import java.util.HashMap;
 
 /**
  * @author Trams Wang
  * @version 2.0
  * Date: Feb, 15, 2016
  *
- *   Standalone server for (intermediate)result storing. In provenance system, It receives
- * data from pipeline server and store the data in local FS.
+ *   Standalone server for intermediate/final result storing. In Mario, It receives
+ * data from pipeline server and store the data in local FS. Also, it will fetch data
+ * if receives a GET method.
  *
- * @see com.nicta.provenance.data.DataServer.DataServerHandler for supporting RESTful API.
+ * Protocol:
+ *   Context: /
+ *     GET: Fetch data
+ *     PUT: Store data
+ *
+ * @see com.nicta.provenance.data.DataServer.DataServerHandler for protocol detail.
  */
 public class DataServer {
 
@@ -81,7 +82,8 @@ public class DataServer {
 
         /**
          * 'GET' method handler.
-         *   Handle 'GET' request URI of the following form: "/data_index", which reads data in file 'data_index'.
+         *   Handle 'GET' request URI of the following form: "/data_index", which reads data in file 'data_index'
+         * and send it back.
          *
          * @param t HTTP context.
          * @throws IOException
@@ -104,9 +106,8 @@ public class DataServer {
 
         /**
          * 'PUT' method handler.
-         *   Handle 'PUT' request URI of the following form: "/variable_name", which generates an unified index
-         * and stores data into a file named after "variable_name" and the index, from corresponding variable
-         * in Pig Latin script.
+         *   Handle 'PUT' request URI of the following form: "/index_prefix", which generates an unified index
+         * and stores data into a file named after "index_prefex" and the index.
          *
          * @param t HTTP context.
          * @throws IOException

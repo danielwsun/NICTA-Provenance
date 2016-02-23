@@ -31,9 +31,10 @@ import java.net.URLEncoder;
  * wrong; 'dstvar' is the relation that's going to be stored, we suggest using same relation name when applying this
  * operation for the sake of performance and correctness; 'srcvar' is a string denotes the source variable, if there's
  * more than one, all source variable names are separated by ','; 'processor' stands for the user specified name for
- * this procedure; 'dstvar' is the name of the variable user would like to store data from;
+ * this procedure; 'dstvar' is the name of the variable user would like to store data from; last asterisk is compulsory
+ * for it means the entire data content.
  *
- *   This function shall always used inside a FLATTEN operator, as shown in the example below:
+ *   This function shall always be used inside a FLATTEN operator, as shown in the example below:
  *   E.g.
  *   REGISTER InterStore com.nicta.provenance.pigudf.ProvInterStore('http', 'localhost', '8888');
  *   ...
@@ -78,7 +79,7 @@ public class ProvInterStore extends EvalFunc<Tuple>{
      *   $3,...: record content
      *
      * @param input Source data
-     * @return Index assigned to those data by data server.
+     * @return Stored tuple.
      * @throws IOException
      */
     public Tuple exec(Tuple input) throws IOException

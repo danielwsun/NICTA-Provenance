@@ -28,8 +28,8 @@ import java.util.Map;
  *
  *   STORE varname INTO 'host/port' USING com.nicta.provenance.pigudf.ProvStorer('varname');
  *
- *   Where 'host/port' is '/' separated host and port of pipeline server; 'varname' is the variable name in Pig Latin
- * that refers to data going to be stored; 'srcidx' is index of data referred by 'varname'.
+ *   Where 'host' and 'port' are host address and port for pipeline server; 'varname' is the variable name in Pig Latin
+ * that refers to data going to be stored.
  */
 public class ProvStorer extends StoreFunc{
 
@@ -188,6 +188,8 @@ public class ProvStorer extends StoreFunc{
      *   Initiate storing procedure with user specified configurations.
      *
      * @param srcvar Source variable name in Pig Latin script.
+     * @param processor User specified name for this procedure.
+     * @param dstvar Name of the variable user would like to store data from.
      */
     public ProvStorer(String srcvar, String processor, String dstvar)
     {

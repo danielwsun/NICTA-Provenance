@@ -46,10 +46,10 @@ public class ProvConfig {
     public static final String  DEF_QS_PROTOCOL = "http";
     public static final String  DEF_QS_HOST = "localhost";
     public static final int     DEF_QS_PORT = 7777;
-    public static final String  DEF_QS_DATA_CONTEXT = "/data";
-    public static final String  DEF_QS_SEM_CONTEXT = "/semantics";
-    public static final String  DEF_QS_META_CONTEXT = "/meta";
-    public static final String  DEF_QS_HELP_CONTEXT = "/help";
+    public static final String  DEF_QS_DATA_CONTEXT = "/_data";
+    public static final String  DEF_QS_SEM_CONTEXT = "/_semantics";
+    public static final String  DEF_QS_META_CONTEXT = "/_meta";
+    public static final String  DEF_QS_HELP_CONTEXT = "/_help";
 
 
     private static final char SETUP_DS_MANU = 'D';
