@@ -14,7 +14,7 @@ DEFINE Clean 		test.CleanByRep('19');
 DEFINE ConvertTime 	test.ConvertTime();
 DEFINE CalDensity	test.CalculateDensity();
 
-raw = LOAD 'localhost/8888' USING com.nicta.provenance.pigudf.ProvLoader('WifiStatusEg.csv', 'raw');
+raw = LOAD 'localhost/8888' USING com.nicta.provenance.pigudf.ProvLoader('WifiStatusTotal.csv', 'raw');
 
 cleaned = FILTER (FOREACH raw GENERATE FLATTEN(Clean(*))) BY NOT ($0 MATCHES '');
 
