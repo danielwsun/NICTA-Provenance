@@ -1,0 +1,79 @@
+Start
+TestProv #1:
+--Processors: 
+<ARanking>(0.38181818181818183): access_ranked
+<TimedNaming>(0.16363636363636364): timed_result
+<AccNaming>(0.18181818181818182): access_result
+<TGrouping>(0.36363636363636365): timed_grouped
+<TRanking>(0.36363636363636365): timed_ranked
+<Naming>(0.5454545454545454): named
+<Combinning>(0.2): combined
+<ConvertTime>(0.36363636363636365): timed
+<AGrouping>(0.38181818181818183): access_grouped
+<combined_ordered_Storer>(0.0): 
+<access_result_Storer>(0.0): 
+<CNaming>(0.2): combined_named
+<rawLoader>(0.5454545454545454): raw
+<TAccumulation>(0.36363636363636365): timed_summed
+<timed_result_Storer>(0.0): 
+<CmbOrdering>(0.2): combined_ordered
+<AAccummulation>(0.38181818181818183): access_summed
+<Cleanning>(0.5454545454545454): cleaned
+<CScoring>(0.2): combined_scored
+--Data: 
+[timed_result]: timed_result_Storer,
+[named]: ConvertTime,AGrouping,
+[timed]: TGrouping,
+[access_summed]: ARanking,
+[combined_ordered]: combined_ordered_Storer,
+[access_grouped]: AAccummulation,
+[raw]: Cleanning,
+[timed_grouped]: TAccumulation,
+[access_ranked]: AccNaming,Combinning,
+[combined_named]: CScoring,
+[cleaned]: Naming,
+[combined_scored]: CmbOrdering,
+[timed_ranked]: TimedNaming,Combinning,
+[combined]: CNaming,
+[access_result]: access_result_Storer,
+[timed_summed]: TRanking,
+---------------
+TestProv #2:
+--Processors: 
+<ARanking>(0.7090909090909092): access_ranked
+<TimedNaming>(0.3090909090909091): timed_result
+<AccNaming>(0.36363636363636365): access_result
+<TGrouping>(0.6545454545454545): timed_grouped
+<TRanking>(0.6545454545454545): timed_ranked
+<Naming>(1.0181818181818183): named
+<Combinning>(0.34545454545454546): combined
+<ConvertTime>(0.6545454545454545): timed
+<AGrouping>(0.7090909090909092): access_grouped
+<combined_ordered_Storer>(0.0): 
+<access_result_Storer>(0.0): 
+<CNaming>(0.34545454545454546): combined_named
+<rawLoader>(1.0181818181818183): raw
+<TAccumulation>(0.6545454545454545): timed_summed
+<timed_result_Storer>(0.0): 
+<CmbOrdering>(0.34545454545454546): combined_ordered
+<AAccummulation>(0.7090909090909092): access_summed
+<Cleanning>(1.0181818181818183): cleaned
+<CScoring>(0.34545454545454546): combined_scored
+--Data: 
+[timed_result]: timed_result_Storer,
+[named]: ConvertTime,AGrouping,
+[timed]: TGrouping,
+[access_summed]: ARanking,
+[combined_ordered]: combined_ordered_Storer,
+[access_grouped]: AAccummulation,
+[raw]: Cleanning,
+[timed_grouped]: TAccumulation,
+[access_ranked]: AccNaming,Combinning,
+[combined_named]: CScoring,
+[cleaned]: Naming,
+[combined_scored]: CmbOrdering,
+[timed_ranked]: TimedNaming,Combinning,
+[combined]: CNaming,
+[access_result]: access_result_Storer,
+[timed_summed]: TRanking,
+---------------

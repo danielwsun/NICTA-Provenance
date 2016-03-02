@@ -1,0 +1,5 @@
+Start
+TestProv #1:
+2016-03-02 14:40:32,154 [main] INFO  org.apache.pig.Main - Pig script completed in 12 seconds and 986 milliseconds (12986 ms)
+TestProv #2:
+2016-03-02 14:40:46,580 [main] INFO  org.apache.pig.Main - Pig script completed in 12 seconds and 903 milliseconds (12903 ms)

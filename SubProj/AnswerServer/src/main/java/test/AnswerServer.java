@@ -20,7 +20,7 @@ public class AnswerServer {
         try
         {
             ans = new ArrayList<String>();
-            BufferedReader in = new BufferedReader(new FileReader("./Data/WifiStatusLocAns.csv"));
+            BufferedReader in = new BufferedReader(new FileReader("./Data/WifiRankingAns.csv"));
             String inputline;
             while (null != (inputline = in.readLine()))
             {

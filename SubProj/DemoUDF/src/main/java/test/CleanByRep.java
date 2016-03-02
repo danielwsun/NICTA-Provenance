@@ -27,6 +27,7 @@ public class CleanByRep extends EvalFunc<Tuple> {
 
     public Tuple exec(Tuple t) throws ExecException
     {
+        //System.out.println("<><>SIZE::" + Integer.toString(t.size()));
         if (t.size() != schema_len)
         {
             ArrayList<String> list = new ArrayList<String>();
@@ -35,7 +36,7 @@ public class CleanByRep extends EvalFunc<Tuple> {
             String acc = "";
             for (int i = 0; i < lim; i++)
             {
-                String tmp = ((DataByteArray)t.get(i)).toString();
+                String tmp = (null == t.get(i))?"":((DataByteArray)t.get(i)).toString();
                 if (waiting)
                 {
                     if (0 != tmp.length())
@@ -83,7 +84,8 @@ public class CleanByRep extends EvalFunc<Tuple> {
         {
             for (int i = 0; i < schema_len; i++)
             {
-                t.set(i, ((DataByteArray)t.get(i)).toString());
+                //System.out.println("ITER::" + Integer.toString(i));
+                t.set(i, (null == t.get(i))?"":((DataByteArray)t.get(i)).toString());
             }
             return t;
         }
