@@ -4,7 +4,7 @@
 --
 -- Date:	2016/3/1
 -- Author:	Trams Wang
--- Version:	1.0
+-- Version:	1.1
 -------------------------------------------------------------------------------------------------------------------
 REGISTER Provenance.jar;
 REGISTER DemoUDF.jar;
@@ -12,9 +12,9 @@ REGISTER DemoUDF.jar;
 DEFINE ProvInterStore 	com.nicta.provenance.pigudf.ProvInterStore('http', 'localhost', '8888');
 DEFINE Clean 		test.CleanByRep('19');
 DEFINE ConvertTime 	test.ConvertTime();
-DEFINE CalRankScore 	test.CalculateRank();
+DEFINE CalDensity	test.CalculateDensity();
 
-raw = LOAD 'localhost/8888' USING com.nicta.provenance.pigudf.ProvLoader('WifiStatusTotal.csv', 'raw');
+raw = LOAD 'localhost/8888' USING com.nicta.provenance.pigudf.ProvLoader('WifiStatusEg.csv', 'raw');
 
 cleaned = FILTER (FOREACH raw GENERATE FLATTEN(Clean(*))) BY NOT ($0 MATCHES '');
 
@@ -30,28 +30,23 @@ timed_grouped = GROUP timed BY LocationID;
 
 timed_summed = FOREACH timed_grouped GENERATE group AS LocationID, SUM(timed.Duration) AS TotalDuration;
 
-timed_ranked = RANK timed_summed BY TotalDuration DESC;
+timed_ordered = ORDER timed_summed BY TotalDuration DESC;
+STORE timed_ordered INTO 'localhost/8888' USING com.nicta.provenance.pigudf.ProvStorer('timed_summed', 'TimedRanking', 'timed_ordered');
 
-timed_result = FOREACH timed_ranked GENERATE LocationID, rank_timed_summed AS TimeRank;
-
-STORE timed_result INTO 'localhost/8888' USING com.nicta.provenance.pigudf.ProvStorer('timed_ranked', 'TimedNaming', 'timed_result');
-
+---------------------------------------------------------------------------------------------------
 access_grouped = GROUP named BY LocationID;
 
 access_summed = FOREACH access_grouped GENERATE group AS LocationID, SUM(named.AccessCount) AS TotalAccesses;
 
-access_ranked = RANK access_summed BY TotalAccesses DESC;
+access_ordered = ORDER access_summed BY TotalAccesses DESC;
+STORE access_ordered INTO 'localhost/8888' USING com.nicta.provenance.pigudf.ProvStorer('access_summed', 'AccRanking', 'access_ordered');
 
-access_result = FOREACH access_ranked GENERATE LocationID, rank_access_summed AS AccessRank;
+---------------------------------------------------------------------------------------------------
+density = JOIN timed_summed BY LocationID, access_summed BY LocationID;
 
-STORE access_result INTO 'localhost/8888' USING com.nicta.provenance.pigudf.ProvStorer('access_ranked', 'AccNaming', 'access_result');
+density_scored = FOREACH density GENERATE timed_summed::LocationID AS LocationID,
+	CalDensity(access_summed::TotalAccesses, timed_summed::TotalDuration) AS Density:double;
 
-combined = JOIN timed_ranked BY LocationID, access_ranked BY LocationID;
+density_ordered = ORDER density_scored BY Density DESC;
 
-combined_named = FOREACH combined GENERATE timed_ranked::LocationID AS LocationID, timed_ranked::rank_timed_summed AS TimeRank, access_ranked::rank_access_summed AS AccessRank;
-
-combined_scored = FOREACH combined_named GENERATE LocationID, CalRankScore(TimeRank, AccessRank) AS TotalScore:long;
-
-combined_ordered = ORDER combined_scored BY TotalScore ASC;
-
-STORE combined_ordered INTO 'localhost/8888' USING com.nicta.provenance.pigudf.ProvStorer('combined_scored', 'CmbOrdering', 'combined_ordered');
+STORE density_ordered INTO 'localhost/8888' USING com.nicta.provenance.pigudf.ProvStorer('density_scored', 'DensityOrdering', 'density_ordered');
