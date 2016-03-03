@@ -1,5 +1,23 @@
 Start
 TestProv #1:
-2016-03-02 14:40:32,154 [main] INFO  org.apache.pig.Main - Pig script completed in 12 seconds and 986 milliseconds (12986 ms)
+2016-03-03 10:53:49,961 [main] INFO  org.apache.pig.Main - Pig script completed in 53 seconds and 968 milliseconds (53968 ms)
 TestProv #2:
-2016-03-02 14:40:46,580 [main] INFO  org.apache.pig.Main - Pig script completed in 12 seconds and 903 milliseconds (12903 ms)
+2016-03-03 10:54:43,789 [main] INFO  org.apache.pig.Main - Pig script completed in 51 seconds and 702 milliseconds (51702 ms)
+TestProv #3:
+2016-03-03 10:55:32,961 [main] INFO  org.apache.pig.Main - Pig script completed in 47 seconds and 273 milliseconds (47273 ms)
+TestProv #4:
+2016-03-03 10:56:27,784 [main] INFO  org.apache.pig.Main - Pig script completed in 53 seconds and 444 milliseconds (53444 ms)
+TestProv #5:
+2016-03-03 10:57:19,870 [main] INFO  org.apache.pig.Main - Pig script completed in 49 seconds and 804 milliseconds (49804 ms)
+TestProv #6:
+2016-03-03 10:58:13,800 [main] INFO  org.apache.pig.Main - Pig script completed in 52 seconds and 385 milliseconds (52385 ms)
+TestProv #7:
+2016-03-03 10:59:07,623 [main] INFO  org.apache.pig.Main - Pig script completed in 51 seconds and 449 milliseconds (51449 ms)
+TestProv #8:
+2016-03-03 11:00:02,346 [main] INFO  org.apache.pig.Main - Pig script completed in 53 seconds and 208 milliseconds (53208 ms)
+TestProv #9:
+2016-03-03 11:00:59,216 [main] INFO  org.apache.pig.Main - Pig script completed in 55 seconds and 119 milliseconds (55119 ms)
+TestProv #10:
+2016-03-03 11:01:54,118 [main] INFO  org.apache.pig.Main - Pig script completed in 53 seconds and 561 milliseconds (53561 ms)
+TestProv #11:
+2016-03-03 11:02:51,856 [main] INFO  org.apache.pig.Main - Pig script completed in 56 seconds and 532 milliseconds (56532 ms)

@@ -1,5 +1,5 @@
 -------------------------------------------------------------------------------------------------------------------
--- Use this script to rank wifi hotspot temperature according to 'WifiStatus_2.csv'.
+-- Use this script to rank wifi hotspot temperature according to 'WifiStatus50K_11.csv'.
 -- Data downloaded from 'data.gov.au'.
 --
 -- Date:	2016/3/1
@@ -15,7 +15,7 @@ DEFINE ConvertTime 	test.ConvertTime();
 DEFINE CalDensity	test.CalculateDensity();
 
 ---------------------------------------------------------------------------------------------------
-raw = LOAD 'localhost/8888' USING com.nicta.provenance.pigudf.ProvLoader('WifiStatusEg.csv', 'raw');
+raw = LOAD 'localhost/8888' USING com.nicta.provenance.pigudf.ProvLoader('WifiStatus50K_11.csv', 'raw');
 
 cleaned = FILTER (FOREACH raw GENERATE FLATTEN(Clean(*))) BY NOT ($0 MATCHES '');
 cleaned = FOREACH cleaned GENERATE FLATTEN(ProvInterStore('raw', 'Cleanning', 'cleaned', *));

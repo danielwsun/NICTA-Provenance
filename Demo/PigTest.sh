@@ -1,4 +1,4 @@
-NUM=2;
+NUM=11;
 PIGLATIN="RankingProv.pig";
 LOGFILE="PigTestLog.txt";
 TIMEFILE="PigTestTimeProv.txt";
@@ -9,7 +9,7 @@ echo "Start" > $SCOREFILE;
 
 for i in $(seq 1 ${NUM})
 do
-    sed -i 's/WifiStatus.*[.]csv/WifiStatus_'${i}'.csv/g' $PIGLATIN;
+    sed -i 's/WifiStatus.*[.]csv/WifiStatus50K_'${i}'.csv/g' $PIGLATIN;
     echo TestProv \#${i}: >> $TIMEFILE;
     pig -x local $PIGLATIN &> $LOGFILE;
     cat $LOGFILE | grep '(.*ms)' >> $TIMEFILE;

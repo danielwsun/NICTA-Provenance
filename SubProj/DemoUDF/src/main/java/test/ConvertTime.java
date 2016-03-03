@@ -14,7 +14,7 @@ public class ConvertTime extends EvalFunc<Long> {
         String fa= (String)t.get(1);
         String la= (String)t.get(2);
         long result = convert(la) - convert(fa);
-        return (0 == result)?1:result;
+        return (0 == result)?1:Math.abs(result);
     }
 
     private long convert(String s)

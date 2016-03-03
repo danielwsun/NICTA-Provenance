@@ -1,79 +1,364 @@
 Start
 TestProv #1:
 --Processors: 
-<ARanking>(0.38181818181818183): access_ranked
-<TimedNaming>(0.16363636363636364): timed_result
-<AccNaming>(0.18181818181818182): access_result
-<TGrouping>(0.36363636363636365): timed_grouped
-<TRanking>(0.36363636363636365): timed_ranked
-<Naming>(0.5454545454545454): named
-<Combinning>(0.2): combined
-<ConvertTime>(0.36363636363636365): timed
-<AGrouping>(0.38181818181818183): access_grouped
-<combined_ordered_Storer>(0.0): 
-<access_result_Storer>(0.0): 
-<CNaming>(0.2): combined_named
-<rawLoader>(0.5454545454545454): raw
-<TAccumulation>(0.36363636363636365): timed_summed
-<timed_result_Storer>(0.0): 
-<CmbOrdering>(0.2): combined_ordered
-<AAccummulation>(0.38181818181818183): access_summed
-<Cleanning>(0.5454545454545454): cleaned
-<CScoring>(0.2): combined_scored
+<DensityOrdering>(0.38181818181818183): density_ordered
+<AccRanking>(0.21818181818181817): access_ordered
+<TimedRanking>(0.21818181818181817): timed_ordered
+<TGrouping>(0.6): timed_grouped
+<Naming>(0.8181818181818181): named
+<Combinning>(0.38181818181818183): density
+<ConvertTime>(0.6): timed
+<AGrouping>(0.6): access_grouped
+<access_ordered_Storer>(0.0): 
+<rawLoader>(0.8181818181818181): raw
+<TAccumulation>(0.6): timed_summed
+<density_ordered_Storer>(0.0): 
+<AAccummulation>(0.6): access_summed
+<Cleanning>(0.8181818181818181): cleaned
+<DScoring>(0.38181818181818183): density_scored
+<timed_ordered_Storer>(0.0): 
 --Data: 
-[timed_result]: timed_result_Storer,
 [named]: ConvertTime,AGrouping,
 [timed]: TGrouping,
-[access_summed]: ARanking,
-[combined_ordered]: combined_ordered_Storer,
+[density_scored]: DensityOrdering,
+[density]: DScoring,
+[access_summed]: AccRanking,Combinning,
+[timed_ordered]: timed_ordered_Storer,
 [access_grouped]: AAccummulation,
+[access_ordered]: access_ordered_Storer,
 [raw]: Cleanning,
 [timed_grouped]: TAccumulation,
-[access_ranked]: AccNaming,Combinning,
-[combined_named]: CScoring,
+[density_ordered]: density_ordered_Storer,
 [cleaned]: Naming,
-[combined_scored]: CmbOrdering,
-[timed_ranked]: TimedNaming,Combinning,
-[combined]: CNaming,
-[access_result]: access_result_Storer,
-[timed_summed]: TRanking,
+[timed_summed]: TimedRanking,Combinning,
 ---------------
 TestProv #2:
 --Processors: 
-<ARanking>(0.7090909090909092): access_ranked
-<TimedNaming>(0.3090909090909091): timed_result
-<AccNaming>(0.36363636363636365): access_result
-<TGrouping>(0.6545454545454545): timed_grouped
-<TRanking>(0.6545454545454545): timed_ranked
-<Naming>(1.0181818181818183): named
-<Combinning>(0.34545454545454546): combined
-<ConvertTime>(0.6545454545454545): timed
-<AGrouping>(0.7090909090909092): access_grouped
-<combined_ordered_Storer>(0.0): 
-<access_result_Storer>(0.0): 
-<CNaming>(0.34545454545454546): combined_named
-<rawLoader>(1.0181818181818183): raw
-<TAccumulation>(0.6545454545454545): timed_summed
-<timed_result_Storer>(0.0): 
-<CmbOrdering>(0.34545454545454546): combined_ordered
-<AAccummulation>(0.7090909090909092): access_summed
-<Cleanning>(1.0181818181818183): cleaned
-<CScoring>(0.34545454545454546): combined_scored
+<DensityOrdering>(0.7636363636363637): density_ordered
+<AccRanking>(0.45454545454545453): access_ordered
+<TimedRanking>(0.4181818181818182): timed_ordered
+<TGrouping>(1.1818181818181819): timed_grouped
+<Naming>(1.6363636363636362): named
+<Combinning>(0.7636363636363637): density
+<ConvertTime>(1.1818181818181819): timed
+<AGrouping>(1.2181818181818183): access_grouped
+<access_ordered_Storer>(0.0): 
+<rawLoader>(1.6363636363636362): raw
+<TAccumulation>(1.1818181818181819): timed_summed
+<density_ordered_Storer>(0.0): 
+<AAccummulation>(1.2181818181818183): access_summed
+<Cleanning>(1.6363636363636362): cleaned
+<DScoring>(0.7636363636363637): density_scored
+<timed_ordered_Storer>(0.0): 
 --Data: 
-[timed_result]: timed_result_Storer,
 [named]: ConvertTime,AGrouping,
 [timed]: TGrouping,
-[access_summed]: ARanking,
-[combined_ordered]: combined_ordered_Storer,
+[density_scored]: DensityOrdering,
+[density]: DScoring,
+[access_summed]: AccRanking,Combinning,
+[timed_ordered]: timed_ordered_Storer,
 [access_grouped]: AAccummulation,
+[access_ordered]: access_ordered_Storer,
 [raw]: Cleanning,
 [timed_grouped]: TAccumulation,
-[access_ranked]: AccNaming,Combinning,
-[combined_named]: CScoring,
+[density_ordered]: density_ordered_Storer,
 [cleaned]: Naming,
-[combined_scored]: CmbOrdering,
-[timed_ranked]: TimedNaming,Combinning,
-[combined]: CNaming,
-[access_result]: access_result_Storer,
-[timed_summed]: TRanking,
+[timed_summed]: TimedRanking,Combinning,
+---------------
+TestProv #3:
+--Processors: 
+<DensityOrdering>(1.1272727272727274): density_ordered
+<AccRanking>(0.6909090909090909): access_ordered
+<TimedRanking>(0.6000000000000001): timed_ordered
+<TGrouping>(1.7272727272727275): timed_grouped
+<Naming>(2.4181818181818184): named
+<Combinning>(1.1272727272727274): density
+<ConvertTime>(1.7272727272727275): timed
+<AGrouping>(1.8181818181818183): access_grouped
+<access_ordered_Storer>(0.0): 
+<rawLoader>(2.4181818181818184): raw
+<TAccumulation>(1.7272727272727275): timed_summed
+<density_ordered_Storer>(0.0): 
+<AAccummulation>(1.8181818181818183): access_summed
+<Cleanning>(2.4181818181818184): cleaned
+<DScoring>(1.1272727272727274): density_scored
+<timed_ordered_Storer>(0.0): 
+--Data: 
+[named]: ConvertTime,AGrouping,
+[timed]: TGrouping,
+[density_scored]: DensityOrdering,
+[density]: DScoring,
+[access_summed]: AccRanking,Combinning,
+[timed_ordered]: timed_ordered_Storer,
+[access_grouped]: AAccummulation,
+[access_ordered]: access_ordered_Storer,
+[raw]: Cleanning,
+[timed_grouped]: TAccumulation,
+[density_ordered]: density_ordered_Storer,
+[cleaned]: Naming,
+[timed_summed]: TimedRanking,Combinning,
+---------------
+TestProv #4:
+--Processors: 
+<DensityOrdering>(1.4909090909090912): density_ordered
+<AccRanking>(0.9090909090909091): access_ordered
+<TimedRanking>(0.8): timed_ordered
+<TGrouping>(2.290909090909091): timed_grouped
+<Naming>(3.2000000000000006): named
+<Combinning>(1.4909090909090912): density
+<ConvertTime>(2.290909090909091): timed
+<AGrouping>(2.4000000000000004): access_grouped
+<access_ordered_Storer>(0.0): 
+<rawLoader>(3.2000000000000006): raw
+<TAccumulation>(2.290909090909091): timed_summed
+<density_ordered_Storer>(0.0): 
+<AAccummulation>(2.4000000000000004): access_summed
+<Cleanning>(3.2000000000000006): cleaned
+<DScoring>(1.4909090909090912): density_scored
+<timed_ordered_Storer>(0.0): 
+--Data: 
+[named]: ConvertTime,AGrouping,
+[timed]: TGrouping,
+[density_scored]: DensityOrdering,
+[density]: DScoring,
+[access_summed]: AccRanking,Combinning,
+[timed_ordered]: timed_ordered_Storer,
+[access_grouped]: AAccummulation,
+[access_ordered]: access_ordered_Storer,
+[raw]: Cleanning,
+[timed_grouped]: TAccumulation,
+[density_ordered]: density_ordered_Storer,
+[cleaned]: Naming,
+[timed_summed]: TimedRanking,Combinning,
+---------------
+TestProv #5:
+--Processors: 
+<DensityOrdering>(1.854545454545455): density_ordered
+<AccRanking>(1.1454545454545455): access_ordered
+<TimedRanking>(0.9818181818181819): timed_ordered
+<TGrouping>(2.8363636363636364): timed_grouped
+<Naming>(3.9818181818181824): named
+<Combinning>(1.854545454545455): density
+<ConvertTime>(2.8363636363636364): timed
+<AGrouping>(3.0000000000000004): access_grouped
+<access_ordered_Storer>(0.0): 
+<rawLoader>(3.9818181818181824): raw
+<TAccumulation>(2.8363636363636364): timed_summed
+<density_ordered_Storer>(0.0): 
+<AAccummulation>(3.0000000000000004): access_summed
+<Cleanning>(3.9818181818181824): cleaned
+<DScoring>(1.854545454545455): density_scored
+<timed_ordered_Storer>(0.0): 
+--Data: 
+[named]: ConvertTime,AGrouping,
+[timed]: TGrouping,
+[density_scored]: DensityOrdering,
+[density]: DScoring,
+[access_summed]: AccRanking,Combinning,
+[timed_ordered]: timed_ordered_Storer,
+[access_grouped]: AAccummulation,
+[access_ordered]: access_ordered_Storer,
+[raw]: Cleanning,
+[timed_grouped]: TAccumulation,
+[density_ordered]: density_ordered_Storer,
+[cleaned]: Naming,
+[timed_summed]: TimedRanking,Combinning,
+---------------
+TestProv #6:
+--Processors: 
+<DensityOrdering>(2.2363636363636368): density_ordered
+<AccRanking>(1.3818181818181818): access_ordered
+<TimedRanking>(1.2000000000000002): timed_ordered
+<TGrouping>(3.4363636363636365): timed_grouped
+<Naming>(4.818181818181818): named
+<Combinning>(2.2363636363636368): density
+<ConvertTime>(3.4363636363636365): timed
+<AGrouping>(3.6181818181818186): access_grouped
+<access_ordered_Storer>(0.0): 
+<rawLoader>(4.818181818181818): raw
+<TAccumulation>(3.4363636363636365): timed_summed
+<density_ordered_Storer>(0.0): 
+<AAccummulation>(3.6181818181818186): access_summed
+<Cleanning>(4.818181818181818): cleaned
+<DScoring>(2.2363636363636368): density_scored
+<timed_ordered_Storer>(0.0): 
+--Data: 
+[named]: ConvertTime,AGrouping,
+[timed]: TGrouping,
+[density_scored]: DensityOrdering,
+[density]: DScoring,
+[access_summed]: AccRanking,Combinning,
+[timed_ordered]: timed_ordered_Storer,
+[access_grouped]: AAccummulation,
+[access_ordered]: access_ordered_Storer,
+[raw]: Cleanning,
+[timed_grouped]: TAccumulation,
+[density_ordered]: density_ordered_Storer,
+[cleaned]: Naming,
+[timed_summed]: TimedRanking,Combinning,
+---------------
+TestProv #7:
+--Processors: 
+<DensityOrdering>(2.6181818181818186): density_ordered
+<AccRanking>(1.6): access_ordered
+<TimedRanking>(1.381818181818182): timed_ordered
+<TGrouping>(4.0): timed_grouped
+<Naming>(5.6): named
+<Combinning>(2.6181818181818186): density
+<ConvertTime>(4.0): timed
+<AGrouping>(4.218181818181819): access_grouped
+<access_ordered_Storer>(0.0): 
+<rawLoader>(5.6): raw
+<TAccumulation>(4.0): timed_summed
+<density_ordered_Storer>(0.0): 
+<AAccummulation>(4.218181818181819): access_summed
+<Cleanning>(5.6): cleaned
+<DScoring>(2.6181818181818186): density_scored
+<timed_ordered_Storer>(0.0): 
+--Data: 
+[named]: ConvertTime,AGrouping,
+[timed]: TGrouping,
+[density_scored]: DensityOrdering,
+[density]: DScoring,
+[access_summed]: AccRanking,Combinning,
+[timed_ordered]: timed_ordered_Storer,
+[access_grouped]: AAccummulation,
+[access_ordered]: access_ordered_Storer,
+[raw]: Cleanning,
+[timed_grouped]: TAccumulation,
+[density_ordered]: density_ordered_Storer,
+[cleaned]: Naming,
+[timed_summed]: TimedRanking,Combinning,
+---------------
+TestProv #8:
+--Processors: 
+<DensityOrdering>(2.963636363636364): density_ordered
+<AccRanking>(1.8545454545454545): access_ordered
+<TimedRanking>(1.563636363636364): timed_ordered
+<TGrouping>(4.527272727272727): timed_grouped
+<Naming>(6.381818181818182): named
+<Combinning>(2.963636363636364): density
+<ConvertTime>(4.527272727272727): timed
+<AGrouping>(4.818181818181819): access_grouped
+<access_ordered_Storer>(0.0): 
+<rawLoader>(6.381818181818182): raw
+<TAccumulation>(4.527272727272727): timed_summed
+<density_ordered_Storer>(0.0): 
+<AAccummulation>(4.818181818181819): access_summed
+<Cleanning>(6.381818181818182): cleaned
+<DScoring>(2.963636363636364): density_scored
+<timed_ordered_Storer>(0.0): 
+--Data: 
+[named]: ConvertTime,AGrouping,
+[timed]: TGrouping,
+[density_scored]: DensityOrdering,
+[density]: DScoring,
+[access_summed]: AccRanking,Combinning,
+[timed_ordered]: timed_ordered_Storer,
+[access_grouped]: AAccummulation,
+[access_ordered]: access_ordered_Storer,
+[raw]: Cleanning,
+[timed_grouped]: TAccumulation,
+[density_ordered]: density_ordered_Storer,
+[cleaned]: Naming,
+[timed_summed]: TimedRanking,Combinning,
+---------------
+TestProv #9:
+--Processors: 
+<DensityOrdering>(3.272727272727273): density_ordered
+<AccRanking>(2.0545454545454547): access_ordered
+<TimedRanking>(1.763636363636364): timed_ordered
+<TGrouping>(5.036363636363637): timed_grouped
+<Naming>(7.090909090909092): named
+<Combinning>(3.272727272727273): density
+<ConvertTime>(5.036363636363637): timed
+<AGrouping>(5.327272727272728): access_grouped
+<access_ordered_Storer>(0.0): 
+<rawLoader>(7.090909090909092): raw
+<TAccumulation>(5.036363636363637): timed_summed
+<density_ordered_Storer>(0.0): 
+<AAccummulation>(5.327272727272728): access_summed
+<Cleanning>(7.090909090909092): cleaned
+<DScoring>(3.272727272727273): density_scored
+<timed_ordered_Storer>(0.0): 
+--Data: 
+[named]: ConvertTime,AGrouping,
+[timed]: TGrouping,
+[density_scored]: DensityOrdering,
+[density]: DScoring,
+[access_summed]: AccRanking,Combinning,
+[timed_ordered]: timed_ordered_Storer,
+[access_grouped]: AAccummulation,
+[access_ordered]: access_ordered_Storer,
+[raw]: Cleanning,
+[timed_grouped]: TAccumulation,
+[density_ordered]: density_ordered_Storer,
+[cleaned]: Naming,
+[timed_summed]: TimedRanking,Combinning,
+---------------
+TestProv #10:
+--Processors: 
+<DensityOrdering>(3.6): density_ordered
+<AccRanking>(2.290909090909091): access_ordered
+<TimedRanking>(1.9454545454545458): timed_ordered
+<TGrouping>(5.545454545454546): timed_grouped
+<Naming>(7.836363636363637): named
+<Combinning>(3.6): density
+<ConvertTime>(5.545454545454546): timed
+<AGrouping>(5.8909090909090915): access_grouped
+<access_ordered_Storer>(0.0): 
+<rawLoader>(7.836363636363637): raw
+<TAccumulation>(5.545454545454546): timed_summed
+<density_ordered_Storer>(0.0): 
+<AAccummulation>(5.8909090909090915): access_summed
+<Cleanning>(7.836363636363637): cleaned
+<DScoring>(3.6): density_scored
+<timed_ordered_Storer>(0.0): 
+--Data: 
+[named]: ConvertTime,AGrouping,
+[timed]: TGrouping,
+[density_scored]: DensityOrdering,
+[density]: DScoring,
+[access_summed]: AccRanking,Combinning,
+[timed_ordered]: timed_ordered_Storer,
+[access_grouped]: AAccummulation,
+[access_ordered]: access_ordered_Storer,
+[raw]: Cleanning,
+[timed_grouped]: TAccumulation,
+[density_ordered]: density_ordered_Storer,
+[cleaned]: Naming,
+[timed_summed]: TimedRanking,Combinning,
+---------------
+TestProv #11:
+--Processors: 
+<DensityOrdering>(3.963636363636364): density_ordered
+<AccRanking>(2.5272727272727273): access_ordered
+<TimedRanking>(2.145454545454546): timed_ordered
+<TGrouping>(6.109090909090909): timed_grouped
+<Naming>(8.636363636363637): named
+<Combinning>(3.963636363636364): density
+<ConvertTime>(6.109090909090909): timed
+<AGrouping>(6.490909090909091): access_grouped
+<access_ordered_Storer>(0.0): 
+<rawLoader>(8.636363636363637): raw
+<TAccumulation>(6.109090909090909): timed_summed
+<density_ordered_Storer>(0.0): 
+<AAccummulation>(6.490909090909091): access_summed
+<Cleanning>(8.636363636363637): cleaned
+<DScoring>(3.963636363636364): density_scored
+<timed_ordered_Storer>(0.0): 
+--Data: 
+[named]: ConvertTime,AGrouping,
+[timed]: TGrouping,
+[density_scored]: DensityOrdering,
+[density]: DScoring,
+[access_summed]: AccRanking,Combinning,
+[timed_ordered]: timed_ordered_Storer,
+[access_grouped]: AAccummulation,
+[access_ordered]: access_ordered_Storer,
+[raw]: Cleanning,
+[timed_grouped]: TAccumulation,
+[density_ordered]: density_ordered_Storer,
+[cleaned]: Naming,
+[timed_summed]: TimedRanking,Combinning,
 ---------------
